@@ -119,6 +119,4 @@ Released under the Apache License 2.0 (see `LICENSE`). The `pretrain/` directory
 
 ## Contact
 
-Corresponding authors:
-- Fan Zhang — `fanzhanggis@pku.edu.cn`
-- Yu Liu — `yuliugis@pku.edu.cn`
+Corresponding author: Fan Zhang — `fanzhanggis@pku.edu.cn`
