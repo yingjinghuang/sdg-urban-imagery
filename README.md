@@ -40,15 +40,15 @@ sdg-urban-imagery/
 
 | Asset | Size | Location | Access |
 |---|---|---|---|
-| Neighborhood-level features (`Unit/`) | ~1.7 GB | Zenodo (DOI: TBD) | Public |
-| Per-image raw features (`Raw/`) | ~142 GB | Zenodo large-data deposit (DOI: TBD) | Public (large) |
-| Trained model weights — main framework | ~25 GB | Zenodo (DOI: TBD) | Public |
-| Trained model weights — ablation/baselines | varies | — | Available on request |
+| Neighborhood features, processed labels, sampling splits, regression results | ~14 GB | Zenodo — DOI: [10.5281/zenodo.20483916](https://doi.org/10.5281/zenodo.20483916) | Restricted during peer review; public on acceptance |
+| Per-image raw features (`Raw/`) | ~142 GB | — | Available on request |
+| Trained regression weights (`*.pth.tar`) and per-neighborhood predictions (`results.h5`) | ~150 GB | — | Available on request |
+| Pretrained Mocov3 ViT-B backbones | ~6 GB | — | Available on request |
 | Raw satellite imagery | — | Sentinel-2 (Copernicus, free) | Via Google Earth Engine |
 | Raw street view imagery | — | Google Street View Static API | Via API key (paid) |
-| Sustainability indicators | — | Per-country sources | See `docs/data_schema.md` |
+| Sustainability indicators (raw) | — | Per-country statistical agencies | See `docs/data_schema.md` |
 
-DOIs and links will be populated upon acceptance.
+The Zenodo record is set to restricted access until manuscript acceptance; editors and reviewers may request access via the corresponding author.
 
 ---
 
@@ -68,7 +68,9 @@ Copy `configs/paths.example.yaml` to `configs/paths.yaml` and point each entry a
 ### 3. Pull the public dataset
 
 ```bash
-# (commands populated after Zenodo DOIs assigned)
+# Restricted-access record during peer review; download via the
+# corresponding author. Once openly accessible after acceptance:
+#   zenodo_get 10.5281/zenodo.20483916 -o ./data
 ```
 
 ### 4. Run the regression pipeline (Fig 1, Fig 2)
