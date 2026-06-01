@@ -1,0 +1,22 @@
+# Pip-only mirror of environment.yml for users without conda.
+# Mirrors versions pinned in environment.yml.
+torch==2.1.*
+torchvision==0.16.*
+numpy==1.26.*
+pandas==2.1.*
+scipy==1.11.*
+scikit-learn==1.3.*
+geopandas==0.14.*
+shapely==2.0.*
+h5py==3.10.*
+pyyaml==6.0.*
+tqdm
+matplotlib==3.8.*
+seaborn==0.13.*
+joblib
+jupyter
+ipykernel
+timm==0.9.16
+transformers==4.36.2
+ftfy
+regex

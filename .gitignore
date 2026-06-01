@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.ipynb_checkpoints/
+
+# Local config (never commit machine-specific paths)
+configs/paths.yaml
+
+# Data — public release lives on Zenodo, never in git.
+# `data/` is typically a symlink to ${data_root}; the directory itself
+# is also fine — just don't commit its contents.
+data/
+
+# Model artifacts
+*.pth
+*.pth.tar
+*.ckpt
+checkpoints/
+regression_outputs/
+
+# Large derived files
+*.h5
+*.parquet
+
+# Figure outputs
+figures/_out/
+figures/**/*.pdf
+figures/**/*.png
+!figures/**/README*.png
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

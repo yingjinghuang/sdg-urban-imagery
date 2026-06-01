@@ -1,0 +1,68 @@
+# Region manifest for the SDG study.
+#
+# Pipeline iterates over 20 (country, region) pairs. Most regions are
+# single cities; France and Portugal are aggregated at country level
+# (region name "All") because feature extraction runs once over the
+# whole country and per-city resolution is recovered later via the
+# `city` column inside each neighborhood's labels.pkl.
+#
+# Total: 93 cities across 7 countries (40,625 neighborhoods).
+
+regions:
+  Australia:
+    - { name: Adelaide,    sv_epoch: 99, rs_epoch: 49 }
+    - { name: Brisbane,    sv_epoch: 99, rs_epoch: 49 }
+    - { name: Melbourne,   sv_epoch: 99, rs_epoch: 49 }
+    - { name: Perth,       sv_epoch: 99, rs_epoch: 49 }
+    - { name: Sydney,      sv_epoch: 99, rs_epoch: 49 }
+
+  Brazil:
+    - { name: BeloHorizonte, sv_epoch: 99, rs_epoch: 49 }
+    - { name: Curitiba,      sv_epoch: 99, rs_epoch: 49 }
+    - { name: PortoAlegre,   sv_epoch: 99, rs_epoch: 49 }
+    - { name: RiodeJaneiro,  sv_epoch: 99, rs_epoch: 49 }
+
+  China:
+    - { name: HongKong, sv_epoch: 99, rs_epoch: 49 }
+
+  France:
+    # Bundle: contains multiple French cities resolved by the `city`
+    # column inside labels.pkl. Verified cities include
+    # Montpellier, Lens, Creil, Brest, Nancy, Toulon, Rouen, Paris,
+    # Mulhouse, and others (~50+ total).
+    - { name: All, sv_epoch: 99, rs_epoch: 49 }
+
+  Nigeria:
+    - { name: Lagos, sv_epoch: 99, rs_epoch: 49 }
+
+  Portugal:
+    # Country-level bundle, same pattern as France/All.
+    - { name: All, sv_epoch: 99, rs_epoch: 49 }
+
+  US:
+    - { name: Boston,       sv_epoch: 99, rs_epoch: 49 }
+    - { name: Chicago,      sv_epoch: 99, rs_epoch: 49 }
+    - { name: LosAngeles,   sv_epoch: 99, rs_epoch: 49 }
+    - { name: Miami,        sv_epoch: 99, rs_epoch: 49 }
+    - { name: NewYork,      sv_epoch: 99, rs_epoch: 49 }
+    - { name: Philadelphia, sv_epoch: 99, rs_epoch: 49 }
+    - { name: SanFrancisco, sv_epoch: 99, rs_epoch: 49 }
+
+# --- Target indicators per country ----------------------------------------
+# Used by scripts/run_*.sh to set --targets. Drawn from reg_fold.sh.
+
+targets:
+  US: [logcrime, logpetty, walkbike_per_cbg, publictrans_per_cbg,
+       drove_alone_per_cbg, estvmiles, estpmiles, estvtrp, estptrp,
+       obesitycru, diabetescr, lpacrudepr, mhlthcrude, phlthcrude,
+       cancercrud, logincome, povertyline_below100, povertyline_below200]
+  Australia: [med_hhinc, age65, arthritis, asthma, cancer, diabetes,
+              heart_disease, kidney_disease, lung_condition,
+              mental_health, edu_year12, edu_noschool, med_capgain,
+              mean_capgain, unemploy, internet, popden, renter,
+              publictrans, drive, bike, walk]
+  Brazil: [BR01, BR02, BR12, BR13, BR14, BR17]
+  China: [HK02, HK06, HK07, HK15, HK17]
+  France: [FR02, FR03, FR04, FR08, FR09, FR11]
+  Portugal: [PT16, PT24, PT28, PT33, PT34, PT37, PT38, PT35]
+  Nigeria: [market_den, pub_health, health_den]
