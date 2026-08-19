@@ -12,9 +12,13 @@ output_root: /path/to/sdg_outputs   # regression and figure outputs
 # --- Raw imagery ------------------------------------------------------------
 # Only required for re-running pretraining or feature extraction from scratch.
 # Most users will download the pre-extracted features and skip this section.
+#
+# Satellite imagery in the paper was obtained through the Google Static Maps
+# API at approximately 0.6 m spatial resolution. Raw third-party imagery is not
+# redistributed in the Zenodo release.
 
-raw_sv_dir: ${data_root}/raw/GoogleSV         # Google Street View images
-raw_rs_dir: ${data_root}/raw/Sentinel2        # Sentinel-2 satellite tiles
+raw_sv_dir: ${data_root}/raw/GoogleSV          # Google Street View Static API images
+raw_rs_dir: ${data_root}/raw/GoogleSatellite   # ~0.6 m satellite imagery from Google Static Maps API
 
 # --- Processed per-country tables ------------------------------------------
 
