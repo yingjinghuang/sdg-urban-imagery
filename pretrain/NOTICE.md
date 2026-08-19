@@ -13,7 +13,7 @@ that license — see the top-level `LICENSE` file.
 | `vits.py` | Unmodified copy of the upstream `vits.py`. |
 | `datasets.py` | New — custom `PairsDataset` for spatial-contrastive sample selection (loads `(path1, path2, GEOID)` pairs from a pickle produced by `src/datasets/spatial_contrastive.py`). |
 | `moco_sv.py` | Modified — multi-GPU street-view variant. Renamed from `moco_gsv_multi.py`. Differs from upstream `main_moco.py` in: dataset loader (PairsDataset instead of ImageFolder), optional Neptune logging hooks, custom CLI for `--save-folder` and resume semantics. |
-| `moco_rs.py` | Modified — same as `moco_sv.py` but loads Sentinel-2 satellite tiles. Renamed from `moco_rs_multi.py`. |
+| `moco_rs.py` | Modified — same as `moco_sv.py` but loads the high-resolution satellite imagery used in the paper (~0.6 m imagery obtained through the Google Static Maps API). Renamed from `moco_rs_multi.py`. |
 
 ## Files NOT included from upstream
 
