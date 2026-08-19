@@ -1,8 +1,6 @@
 # Conda environment for sdg-urban-imagery.
 #
 # This file pins major libraries to versions known to work with the codebase.
-# Exact versions used in the paper's training environment will be substituted
-# after a `pip freeze` from the original training server.
 #
 # Create:    conda env create -f environment.yml
 # Activate:  conda activate sdg
