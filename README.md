@@ -28,7 +28,7 @@ sdg-urban-imagery/
 │   ├── fig2/                Main Fig 2 panels (a, b, c, d, e, f, g)
 │   ├── extended/            Extended Data Figures
 │   └── supplementary/       Per-city Supplementary Figures
-├── data/README.md           Data access (Zenodo DOIs, raw-source pointers)
+├── data/README.md           Data access (Zenodo DOI, reviewer access, raw-source pointers)
 └── docs/
     ├── reproduce_main_figures.md
     └── data_schema.md
@@ -43,12 +43,12 @@ sdg-urban-imagery/
 | Neighborhood features, processed labels, sampling splits, regression results | ~14 GB | Zenodo — DOI: [10.5281/zenodo.20483916](https://doi.org/10.5281/zenodo.20483916) | Restricted during peer review; public on acceptance |
 | Per-image raw features (`Raw/`) | ~142 GB | — | Available on request |
 | Trained regression weights (`*.pth.tar`) and per-neighborhood predictions (`results.h5`) | ~150 GB | — | Available on request |
-| Pretrained Mocov3 ViT-B backbones | ~6 GB | — | Available on request |
-| Raw satellite imagery | — | Sentinel-2 (Copernicus, free) | Via Google Earth Engine |
-| Raw street view imagery | — | Google Street View Static API | Via API key (paid) |
+| Pretrained MoCo-v3 ViT-B backbones | ~6 GB | Zenodo — DOI: [10.5281/zenodo.20483916](https://doi.org/10.5281/zenodo.20483916) | Restricted during peer review; public on acceptance |
+| Raw satellite imagery | — | Google Static Maps API, ~0.6 m resolution | Via Google Maps Platform API access; not redistributed |
+| Raw street view imagery | — | Google Street View Static API | Via API key; not redistributed |
 | Sustainability indicators (raw) | — | Per-country statistical agencies | See `docs/data_schema.md` |
 
-The Zenodo record is set to restricted access until manuscript acceptance; editors and reviewers may request access via the corresponding author.
+The Zenodo record is restricted during peer review. Editors and reviewers can be given a private Zenodo reviewer-access link by the corresponding author. The record will be made public upon acceptance.
 
 ---
 
@@ -68,8 +68,9 @@ Copy `configs/paths.example.yaml` to `configs/paths.yaml` and point each entry a
 ### 3. Pull the public dataset
 
 ```bash
-# Restricted-access record during peer review; download via the
-# corresponding author. Once openly accessible after acceptance:
+# Restricted-access record during peer review; editors/reviewers can use
+# the private Zenodo reviewer-access link provided by the corresponding author.
+# Once openly accessible after acceptance:
 #   zenodo_get 10.5281/zenodo.20483916 -o ./data
 ```
 
@@ -94,7 +95,7 @@ Each panel notebook reads its inputs from `regression_outputs/` and writes a pan
 
 ## Optional: rerun pretraining from scratch
 
-Pretraining requires the raw imagery (not included in the public release; obtain via API). On a multi-GPU node:
+Pretraining requires the raw imagery, which is not redistributed because it is obtained through third-party APIs. Satellite imagery in the paper was obtained through the Google Static Maps API at approximately 0.6 m spatial resolution, while street-view imagery was obtained through the Google Street View Static API. On a multi-GPU node:
 
 ```bash
 bash scripts/run_pretrain.sh
