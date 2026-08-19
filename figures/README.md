@@ -80,7 +80,10 @@ The notebooks then read from:
 | Unit/Raw features | `data/features/{Unit,Raw}/...` |
 | Processed label/path tables | `data/processed/...` |
 | Pre-rendered figure assets (flags, fonts) | `data/figure_assets/...`, `data/assets/flags/...` |
-| Raw imagery (third-party, not redistributed) | `data/raw/GoogleSV/...`, `data/raw/Sentinel2/...` |
+| Raw street-view imagery (third-party, not redistributed) | `data/raw/GoogleSV/...` |
+| Raw satellite imagery (third-party, not redistributed) | `data/raw/GoogleSatellite/...` |
+
+The raw satellite imagery used in the paper was obtained through the Google Static Maps API at approximately 0.6 m spatial resolution; it is not Sentinel-2 imagery. Raw third-party imagery is not included in the reproducibility deposit.
 
 If you prefer a different layout, set up the symlinks for those specific
 subpaths instead. Notebook outputs (figures) save under `../../data/figure_assets/`
