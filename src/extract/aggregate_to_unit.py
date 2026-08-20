@@ -67,11 +67,27 @@ def aggregate(
     # Some files use "path" as the path column; standardize to "index".
     if "index" not in features.columns and "path" in features.columns:
         features = features.rename(columns={"path": "index"})
+    if "index" not in features.columns:
+        raise ValueError(f"{feature_path}: feature table has neither 'index' nor 'path' column")
     features["index"] = remap_image_paths(features["index"])
 
     _log(f"loading manifest from {meta_path}")
-    meta = pd.read_pickle(meta_path)
-    meta["city"] = city_from_path(meta["path"])
+    meta = pd.read_pickle(meta_path).copy()
+    if "path" not in meta.columns or geoid_col not in meta.columns:
+        raise ValueError(
+            f"{meta_path}: manifest must contain 'path' and '{geoid_col}' columns"
+        )
+
+    # Extraction stores the remapped/local image path in the feature table, so
+    # apply exactly the same path remapping to the manifest before joining. This
+    # is essential when a manifest was produced on a different server and still
+    # contains legacy absolute prefixes.
+    meta["path"] = remap_image_paths(meta["path"])
+
+    # Preserve an explicit city column from the manifest when available. Only
+    # infer it from the image path for older manifests that do not carry one.
+    if "city" not in meta.columns:
+        meta["city"] = city_from_path(meta["path"])
 
     _log("merging features with manifest")
     features = features.merge(
@@ -80,6 +96,11 @@ def aggregate(
         right_on="path",
         how="inner",
     )
+    if features.empty:
+        raise ValueError(
+            "No feature rows matched the image manifest after path normalization. "
+            f"Check that {feature_path} and {meta_path} refer to the same modality/data release."
+        )
 
     features = features.dropna(subset=[geoid_col]).copy()
     # Segmentation CSVs use 1-indexed class columns; ViT/ResNet HDF5 uses 0-indexed.
@@ -87,6 +108,14 @@ def aggregate(
         feature_cols = list(range(1, feature_size + 1))
     else:
         feature_cols = list(range(feature_size))
+
+    missing_feature_cols = [c for c in feature_cols if c not in features.columns]
+    if missing_feature_cols:
+        preview = missing_feature_cols[:10]
+        raise ValueError(
+            f"{feature_path}: missing {len(missing_feature_cols)} expected {arch} feature columns; "
+            f"first missing columns: {preview}"
+        )
     features = features[[geoid_col] + feature_cols]
 
     _log("computing per-neighborhood mean")
@@ -118,7 +147,7 @@ def aggregate(
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--feature_path", required=True, help=".h5 / .pkl / .csv of per-image features")
-    p.add_argument("--meta_path", required=True, help="paths.pkl manifest mapping image -> GEOID")
+    p.add_argument("--meta_path", required=True, help="modality-specific manifest mapping image -> GEOID")
     p.add_argument("--save_path", required=True, help="output .pkl per-neighborhood feature table")
     p.add_argument("--arch", default="VITB", choices=sorted(FEATURE_DIMS.keys()))
     p.add_argument("--geoid_col", default="GEOID",
