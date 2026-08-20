@@ -1,28 +1,53 @@
 #!/usr/bin/env bash
-# Score every street-view image against the 14 visual concepts used in
-# Fig 2b–c (objects: building, car, fence, pole, window, road, tree;
-# attributes: chaotic, orderly, depressing, lively, safe, dilapidated,
-# wealthy). Uses OpenAI CLIP zero-shot scoring.
+# Score Los Angeles imagery against the modality-specific CLIP concept sets
+# reported in the manuscript/Supplementary Information.
 #
-# Output: ${PROCESSED_DIR}/sv_clip_scores.pkl
-#   columns: path, building, car, ..., wealthy
+# Usage:
+#   bash scripts/compute_clip_scores.sh SV
+#   bash scripts/compute_clip_scores.sh RS
+#
+# SV concepts (14 scored in the Supplementary analysis):
+#   building, car, fence, pole, window, road, tree,
+#   chaotic, orderly, depressing, lively, safe, dilapidated, wealthy
+# RS concepts (4):
+#   concrete, rooftop, vegetation, soil
+#
+# The final main Fig. 3b-c displays four concepts per modality:
+#   RS: concrete, rooftop, vegetation, soil
+#   SV: building, window, road, tree
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
-INPUT_PKL="${PROCESSED_DIR}/sv_paths_all.pkl"
-OUTPUT_PKL="${PROCESSED_DIR}/sv_clip_scores.pkl"
-mkdir -p "$(dirname "${OUTPUT_PKL}")"
+MODALITY="${1:?usage: compute_clip_scores.sh <SV|RS>}"
+MODALITY="${MODALITY^^}"
+
+case "${MODALITY}" in
+    SV)
+        INPUT_PKL="${PROCESSED_DIR}/US/LosAngeles/paths.pkl"
+        OUTPUT_PKL="${PROCESSED_DIR}/sv_clip_scores.pkl"
+        ;;
+    RS)
+        INPUT_PKL="${PROCESSED_DIR}/US/LosAngeles/rs_paths.pkl"
+        OUTPUT_PKL="${PROCESSED_DIR}/rs_clip_scores.pkl"
+        ;;
+    *)
+        echo "[clip-scores] modality must be SV or RS, got: ${MODALITY}" >&2
+        exit 2
+        ;;
+esac
 
 if [ ! -f "${INPUT_PKL}" ]; then
-    echo "[clip-scores] missing input manifest: ${INPUT_PKL}" >&2
-    echo "[clip-scores] concat per-city paths.pkl into sv_paths_all.pkl first." >&2
+    echo "[clip-scores] missing Los Angeles ${MODALITY} manifest: ${INPUT_PKL}" >&2
     exit 1
 fi
 
-echo "[clip-scores] writing ${OUTPUT_PKL}"
+mkdir -p "$(dirname "${OUTPUT_PKL}")"
+echo "[clip-scores] ${MODALITY}: ${INPUT_PKL} -> ${OUTPUT_PKL}"
+
 CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" -m src.analysis.clip_concept \
-    --input_pkl  "${INPUT_PKL}" \
-    --output_pkl "${OUTPUT_PKL}" \
-    --batch_size 256
+    --modality "${MODALITY}" \
+    --input-pkl "${INPUT_PKL}" \
+    --output-pkl "${OUTPUT_PKL}" \
+    --batch-size 256
