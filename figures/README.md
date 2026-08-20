@@ -28,8 +28,9 @@ figures/
 | 2c — scaling curves by city | `fig1/panel_c_city_scaling.ipynb` | `_data_prep/prep_fig1c_spearman.ipynb` plus staged outputs |
 | 2d — feature-guided vs random sampling | `fig1/panel_d_sampling_compare.ipynb` | canonical ratio/sampling outputs staged by `scripts/prepare_figure_inputs.py` |
 
-`fig1/scaling_curves.py` and `fig1/panel_d_dumbbell.py` are alternative
-renderers for the corresponding panels.
+The panel notebooks above are the maintained renderers for current Fig. 2.
+Older machine-specific alternative scripts were removed rather than kept as
+competing reproduction routes.
 
 ## Current manuscript Figure 3 — representation and spatial mechanisms
 
@@ -67,7 +68,7 @@ sampling/main/<Country>/<City>/...
 sampling/main_no_geo/<Country>/<City>/...
 ```
 
-Some original main-figure notebooks still expect their historical compact
+Some original main-figure plotting notebooks still expect their historical compact
 `data/regression_outputs/regmodels_*` layout. Create those small compatibility
 CSVs from the canonical results with:
 
