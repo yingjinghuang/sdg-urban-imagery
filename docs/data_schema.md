@@ -59,9 +59,23 @@ Concatenated features across modalities (SV ⊕ RS). Variants:
 | `Concat_spatial` | spatial-SV ⊕ spatial-RS | 1536 |
 | `Concat_spatial_self` | spatial-SV ⊕ spatial-RS ⊕ self-SV ⊕ self-RS | 3072 |
 | `Concat_ImageNet` | ResNet50(ImageNet)-SV ⊕ ResNet50(ImageNet)-RS | 4096 |
-| `Concat_spatial_self_pca99` | `Concat_spatial_self` with PCA to 99% variance | data-dependent |
+| `Concat_spatial_self_pca99` | optional global-PCA derivative of `Concat_spatial_self` | data-dependent |
 
-`Concat_spatial_self` is the main four-branch representation used by the fold, random-sampling, and feature-guided-sampling regression launchers. In token regression it is interpreted as four consecutive 768-dimensional visual tokens. The PCA-reduced variant is used only for sample selection where configured, not as a replacement regression representation.
+`Concat_spatial_self` is the main four-branch representation used by the fold, random-sampling, and feature-guided-sampling regression launchers. In token regression it is interpreted as four consecutive 768-dimensional visual tokens.
+
+For the paper's feature-guided sample selection, `scripts/select_kcenter.sh` also starts from the unreduced `Concat_spatial_self.pkl`. `src/regression/select_kcenter.py` standardizes and applies PCA **separately to each 768-dimensional branch**, retaining 99% variance per branch, then concatenates the reduced branches with weighted standardized centroid coordinates before k-center selection. The optional `Concat_spatial_self_pca99.pkl` global-PCA derivative is retained for legacy/auxiliary analysis and is **not** an input to the paper's k-center selection pipeline.
+
+## `processed/{Country}/{City}/samples/pcahierachy.pkl`
+
+Feature-guided sampling definitions produced by `scripts/select_kcenter.sh`. Columns:
+
+| Column | Description |
+|---|---|
+| `GEOID` | Neighborhood identifier |
+| `geometry` | Neighborhood geometry |
+| `set01` … `set09` | Nested 10% … 90% sampling definitions; `train` denotes selected/surveyed neighborhoods and `test` denotes unsampled neighborhoods to be estimated |
+
+The ordering is generated once by k-center greedy using seed 42; lower sampling ratios are prefixes of the same ordering.
 
 ## `regression_outputs/{Fold,Ratio,Sampling}/.../results.csv`
 
