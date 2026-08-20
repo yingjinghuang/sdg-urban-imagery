@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Fold regression with the segmentation baseline — manuscript Fig. 2a gray line.
+# Fold regression with the segmentation baseline — manuscript Fig. 2a.
 # Uses SV-only 150-dim ADE20K class-distribution features and the same
-# downstream regression configuration as the proposed model.
+# location-aware downstream regression configuration as the proposed model.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -27,6 +27,7 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --feature_path "${FEATURE_PATH}" \
         --label_path   "${LABELS_DIR}/${COUNTRY}/${CITY}/labels_norm.pkl" \
         --community_path "${PROCESSED_DIR}/${COUNTRY}/${CITY}/samples/fold5.pkl" \
+        --geo_path     "${PROCESSED_DIR}/${COUNTRY}/${CITY}/geo.pkl" \
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
         --feature_len  "${FEATURE_LEN}" \
