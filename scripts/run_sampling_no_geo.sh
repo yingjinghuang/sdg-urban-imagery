@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Non-spatial sampling baseline — manuscript Fig. 3f comparison curve.
+# Uses the same four visual tokens as run_sampling.sh, but disables the
+# geographic-coordinate token so the comparison isolates spatial context.
 # Regression hyperparameters are pinned to Supplementary Table 9.
 
 set -euo pipefail
@@ -7,10 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
 TYPE="Fuse"
-# Matches run_sampling.sh; see comment there about the 1536-d Concat_spatial input.
-FEATURE_NAME="Concat_spatial"
+FEATURE_NAME="Concat_spatial_self"
 RUN_TAG="main_no_geo"
-FEATURE_LEN="${FEATURE_LEN:-1536}"
+FEATURE_LEN="${FEATURE_LEN:-768}"
 
 list_regions | while read -r COUNTRY CITY _ _; do
     TARGETS="$(country_targets "${COUNTRY}")"
