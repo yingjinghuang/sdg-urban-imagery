@@ -57,11 +57,11 @@ Concatenated features across modalities (SV ⊕ RS). Variants:
 |---|---|---:|
 | `Concat_self` | self-SV ⊕ self-RS | 1536 |
 | `Concat_spatial` | spatial-SV ⊕ spatial-RS | 1536 |
-| `Concat_spatial_self` | (spatial+self)-SV ⊕ (spatial+self)-RS | 3072 |
+| `Concat_spatial_self` | spatial-SV ⊕ spatial-RS ⊕ self-SV ⊕ self-RS | 3072 |
 | `Concat_ImageNet` | ResNet50(ImageNet)-SV ⊕ ResNet50(ImageNet)-RS | 4096 |
 | `Concat_spatial_self_pca99` | `Concat_spatial_self` with PCA to 99% variance | data-dependent |
 
-`Concat_spatial_self` is the main framework feature consumed by `scripts/run_fold.sh`. The feature-guided sampling launcher uses the representation specified in `scripts/run_sampling.sh`.
+`Concat_spatial_self` is the main four-branch representation used by the fold, random-sampling, and feature-guided-sampling regression launchers. In token regression it is interpreted as four consecutive 768-dimensional visual tokens. The PCA-reduced variant is used only for sample selection where configured, not as a replacement regression representation.
 
 ## `regression_outputs/{Fold,Ratio,Sampling}/.../results.csv`
 
