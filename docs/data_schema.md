@@ -11,18 +11,31 @@ Schema reference for the derived artifacts in the Zenodo deposit. Use this along
 | `geometry` | WKT (optional) | Polygon of the neighborhood (omitted in pkl version). |
 | `<indicator codes>` | float | Country-specific indicator values; see code dictionaries in `processed/0labels/{Country}.csv`. |
 
-## `processed/{Country}/{City}/paths.pkl` — image-to-neighborhood manifest
+## Image-to-neighborhood manifests
+
+The two imagery modalities use distinct manifests and those same manifests must be used both for feature extraction and for neighborhood aggregation:
+
+| Modality | Manifest | Purpose |
+|---|---|---|
+| Street view (SV) | `processed/{Country}/{City}/paths.pkl` | maps each street-view image path to its neighborhood `GEOID` |
+| Satellite / remote sensing (RS) | `processed/{Country}/{City}/rs_paths.pkl` | maps each satellite image path to its neighborhood `GEOID` |
+
+Typical manifest columns are:
 
 | Column | Type | Description |
 |---|---|---|
-| `path` | str | Absolute path to one street-view or satellite image. |
-| `GEOID` | str | Neighborhood the image falls within. |
-| `lat`, `lon` | float | Image capture location. |
-| `city` | str | City within the country bundle (FR/PT only). |
+| `path` | str | Image path |
+| `GEOID` | str | Neighborhood the image falls within |
+| `lat`, `lon` | float | Image capture/location coordinates where available |
+| `city` | str | City within the country bundle (FR/PT only, where applicable) |
+
+Legacy absolute image-path prefixes are normalized consistently in both the extracted feature table and the manifest before they are joined.
 
 ## `features/Raw/{Country}/{City}/{SV,RS}/Mocov3VITB-{variant}-{Country}-{City}-ep{N}.h5` — per-image features
 
-HDF5 containing an `index` column (image path) and 768 feature columns from the ViT-B encoder.
+HDF5 containing an `index` column (image path) and 768 feature columns from the ViT-B encoder. Current extraction writes a single appendable table under the HDF5 key `data`, so large feature sets can be streamed without changing the downstream read interface.
+
+`src/_common/io.py::read_feature_table` also supports legacy feature files that were written as multiple `part_0`, `part_1`, … HDF5 keys; those parts are concatenated in numeric order when read. This compatibility support avoids requiring regeneration of older large per-image artifacts.
 
 | `variant` | Pretraining objective |
 |---|---|
@@ -41,9 +54,11 @@ Pickled `pandas.DataFrame`. Columns:
 | `0`, `1`, …, `767` | Mean-aggregated 768-dim embedding |
 | `city` | City within country (FR/PT) |
 
+The aggregation step joins per-image features to the **modality-specific** manifest above. In particular, RS features are aggregated with `rs_paths.pkl`, not the street-view `paths.pkl` manifest.
+
 ## `features/Unit/{Country}/{City}/{SV,RS}/ImageNet.pkl`
 
-Pickled `pandas.DataFrame` produced from the manuscript's ImageNet baseline: a torchvision ResNet-50 pretrained on ImageNet-1K with the classification head removed. Each neighborhood contains the mean of the 2,048-dimensional global-average-pooling features over its constituent images. Used for the ImageNet comparison in current manuscript Fig. 2a.
+Pickled `pandas.DataFrame` produced from the manuscript's ImageNet baseline: a torchvision ResNet-50 pretrained on ImageNet-1K with the classification head removed. Each neighborhood contains the mean of the 2,048-dimensional global-average-pooling features over its constituent images. Used for the ImageNet comparison in current manuscript Fig. 2a. The SV and RS ImageNet branches likewise use their respective modality-specific manifests during extraction and aggregation.
 
 ## `features/Unit/{Country}/{City}/SV/segmentation.pkl`
 
