@@ -25,11 +25,15 @@ dependencies:
   - geopandas=0.14.*
   - shapely=2.0.*
   - h5py=3.10.*
+  - pytables
   - pyyaml=6.0.*
   - tqdm
   - matplotlib=3.8.*
   - seaborn=0.13.*
+  - pillow
   - joblib
+  - libpysal
+  - esda
   - jupyter
   - ipykernel
   - pip:
