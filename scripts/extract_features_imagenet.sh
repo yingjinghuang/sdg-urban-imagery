@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Extract ImageNet-pretrained ViT-B features (no contrastive finetuning) —
-# the Fig 1a ImageNet baseline. Runs for both SV and RS modalities.
+# Extract ImageNet-1K-pretrained ResNet-50 features (no contrastive finetuning)
+# for the manuscript Fig. 2a ImageNet baseline. Runs for both SV and RS.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,7 +25,7 @@ for MODALITY in SV RS; do
             --feature_path "${UNIT_OUT}.tmp.h5" \
             --meta_path "${IMG_MANIFEST}" \
             --save_path "${UNIT_OUT}" \
-            --arch VITB
+            --arch ResNet50
         rm -f "${UNIT_OUT}.tmp.h5"
     done
 done
