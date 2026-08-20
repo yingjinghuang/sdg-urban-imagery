@@ -9,9 +9,9 @@ This document maps the current manuscript figures to commands that exist in the 
 > 3. Unpack the deposited derived data/checkpoints as described in the top-level README.
 > 4. The historical plotting notebooks use paths relative to `<repo>/data/`. `data/` may be a directory or a symlink to your local data bundle; it is ignored by Git.
 >
-> **Internal folder numbering:** the repository keeps the legacy directories `figures/fig1` and `figures/fig2` for compatibility with the original notebooks. In the current manuscript they correspond to **Fig. 2** and **Fig. 3**, respectively. Current manuscript Fig. 1 is the conceptual overview.
+> **Internal folder numbering:** the repository keeps the historical directories `figures/fig1` and `figures/fig2` for compatibility with the original notebooks. In the current manuscript they correspond to **Fig. 2** and **Fig. 3**, respectively. Current manuscript Fig. 1 is the conceptual overview.
 
-## Canonical outputs vs legacy plotting paths
+## Canonical outputs vs historical plotting paths
 
 The cleaned training launchers write to the canonical layout configured by `regression_out_dir`, for example:
 
@@ -22,13 +22,13 @@ sampling/main/<Country>/<City>/...
 sampling/main_no_geo/<Country>/<City>/...
 ```
 
-Some original plotting notebooks still read the historical `data/regression_outputs/regmodels_*` paths. After running regression, stage small compatibility CSVs with:
+Some original main-figure plotting notebooks still read the historical `data/regression_outputs/regmodels_*` paths. After running regression, stage small compatibility CSVs with:
 
 ```bash
 python scripts/prepare_figure_inputs.py --strict
 ```
 
-This utility **does not retrain models or change the reported metrics**. It maps the canonical outputs to the filenames/schema expected by the legacy plotting notebooks and stages the small metadata tables they need. For fold experiments it writes the per-indicator mean across the five folds, which is the quantity consumed by the figure-level comparisons.
+This utility **does not retrain models or change the reported metrics**. It maps the canonical outputs to the filenames/schema expected by the plotting notebooks and stages the small metadata tables they need. For fold experiments it writes the per-indicator mean across the five folds, which is the quantity consumed by the figure-level comparisons.
 
 You can rerun this command whenever regression outputs change.
 
@@ -178,7 +178,7 @@ jupyter nbconvert --to notebook --execute --inplace figures/fig2/panel_f_spatial
 
 Despite its historical filename, `panel_f_spatial_curve.ipynb` contains both the spatial-vs-non-spatial scaling plot (current Fig. 3f) and the Moran's-I correlation plot (current Fig. 3g). There is no separate `panel_g_moransi.ipynb`; older documentation referring to that filename was incorrect.
 
-The older `figures/_data_prep/prep_fig2g_moransi.ipynb` is retained as a legacy record. For current reproduction use the maintained `.py` script above, which reads the canonical `sampling/main` and `sampling/main_no_geo` outputs and writes:
+The older `figures/_data_prep/prep_fig2g_moransi.ipynb` is retained as a historical analysis record. For current reproduction use the maintained `.py` script above, which reads the canonical `sampling/main` and `sampling/main_no_geo` outputs and writes:
 
 ```text
 data/processed/fig/fig2_geo_reg_moransi_results.csv
@@ -186,11 +186,33 @@ data/processed/fig/fig2_geo_reg_moransi_results.csv
 
 ---
 
-## Extended Data and Supplementary figures
+## Supplementary per-region figures
 
-The `figures/extended/` notebooks and the original `figures/supplementary/batch_per_city_figures.py` are retained from the analysis workspace, but they still contain legacy path/schema assumptions and are **not part of the maintained main-figure reproduction route described above**. Do not treat them as canonical one-command reproduction scripts yet.
+The per-region fold, random-sampling, and feature-guided-sampling Supplementary figures now have a maintained canonical plotting script:
 
-The deposited Extended Data/Supplementary figure inputs and outputs remain available for review. A separate cleanup can normalize those scripts to the canonical `fold/ratio/sampling` output hierarchy without changing the main-paper reproduction path.
+```bash
+python figures/supplementary/batch_per_city_figures.py --strict
+```
+
+The script reads directly from the configured canonical regression hierarchy:
+
+```text
+fold/main/<Country>/<City>/Fuse/Token_Concat_spatial_self/results.csv
+ratio/main/<Country>/<City>/Fuse/Token_Concat_spatial_self/results.csv
+sampling/main/<Country>/<City>/Fuse/Multi_Concat_pcahierachy/results.csv
+```
+
+It reads indicator labels/SDG categories from `<processed_dir>/0labels/<Country>.csv` when those metadata tables are available, and writes PDFs to `data/figure_assets/` by default. A single region can be regenerated with, for example:
+
+```bash
+python figures/supplementary/batch_per_city_figures.py --country US --city Boston --strict
+```
+
+The older duplicate per-city fold script/notebook have been removed so there is now one maintained entry point for these Supplementary figures.
+
+## Extended Data figures
+
+The `figures/extended/` notebooks are retained from the analysis workspace and still contain some historical path/schema assumptions. They are **not part of the maintained main-figure or per-region Supplementary reproduction routes described above**. Their deposited inputs and outputs remain available for review; normalizing those notebooks can be done separately without changing the main-paper reproduction path.
 
 ## Compute scope
 
