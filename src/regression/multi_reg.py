@@ -6,11 +6,12 @@ notebooks expect output directories with the historical ``Multi_*`` naming.
 The model architecture, optimization, early stopping, and metric computation
 are therefore identical to ``token_reg``.
 
-The concrete input representation is selected by each launcher. In the
-current paper-reproduction scripts, ``run_sampling.sh`` and
-``run_sampling_no_geo.sh`` use the 1536-dimensional ``Concat_spatial.pkl``
-input together with the feature-guided sampling definitions, while the
-segmentation baseline supplies its own 150-dimensional feature input.
+For the paper-reproduction sampling experiments, ``run_sampling.sh`` and
+``run_sampling_no_geo.sh`` use ``Concat_spatial_self.pkl``: four 768-dimensional
+visual tokens (street-view spatial, satellite spatial, street-view self, and
+satellite self). This matches the representation used by the main regression
+and random-sampling experiments. The no-geo launcher disables only the
+geographic-coordinate token.
 
 Paper-reproduction launchers pass the regression hyperparameters reported in
 Supplementary Table 9 explicitly; the same values are also the defaults in
