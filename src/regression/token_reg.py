@@ -4,6 +4,14 @@ Trains a Spatial Transformer regressor over per-modality visual tokens
 (plus an optional geo token), iterating over every train/test split
 defined in the community pickle (`set*` columns).
 
+The command-line defaults match the regression configuration reported in
+Supplementary Table 9 of the manuscript (hidden dimension 256, 8 attention
+heads, 1 Transformer layer, batch size 128, 100 maximum epochs, 10-epoch
+warmup, early-stopping patience 5, learning rate 1e-4, and weight decay
+1e-4). Paper-reproduction launchers also pass these values explicitly so
+that future changes to generic defaults cannot silently change the reported
+configuration.
+
 Outputs:
     {output_dir}/results.csv         per-split, per-target R²/MAE/MSE
     {output_dir}/results.h5          per-neighborhood predictions
@@ -164,17 +172,17 @@ def parse_args() -> argparse.Namespace:
                    help="Pickle with GEOID + geometry (required unless --no_geo).")
     p.add_argument("--targets", required=True, help="Comma-separated target names.")
     p.add_argument("--output_dir", required=True)
-    # Model
+    # Model — paper settings from Supplementary Table 9.
     p.add_argument("--feature_len", type=int, default=768)
-    p.add_argument("--hidden_dim", type=int, default=512)
+    p.add_argument("--hidden_dim", type=int, default=256)
     p.add_argument("--num_heads", type=int, default=8)
-    p.add_argument("--num_layers", type=int, default=2)
-    # Training
+    p.add_argument("--num_layers", type=int, default=1)
+    # Training — paper settings from Supplementary Table 9.
     p.add_argument("--lr", type=float, default=1e-4)
-    p.add_argument("--batch_size", type=int, default=256)
-    p.add_argument("--num_epochs", type=int, default=200)
+    p.add_argument("--batch_size", type=int, default=128)
+    p.add_argument("--num_epochs", type=int, default=100)
     p.add_argument("--warmup_epochs", type=int, default=10)
-    p.add_argument("--patience", type=int, default=20)
+    p.add_argument("--patience", type=int, default=5)
     p.add_argument("--weight_decay", type=float, default=1e-4)
     # Device
     p.add_argument("--device", type=int, default=0)
