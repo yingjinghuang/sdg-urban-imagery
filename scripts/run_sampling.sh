@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Feature-guided sampling regression — main framework, with geo.
-# Uses the PCA-99 reduced Concat_spatial_self feature and the hierarchical
-# k-center sample-selection result. Feeds Fig 1b/c/d and Fig 2f/g.
+# Uses the feature-guided sample-selection result. Feeds manuscript
+# Fig. 2b/c/d and Fig. 3f/g.
+# Regression hyperparameters are pinned to Supplementary Table 9.
 #
 # Output:
 #   ${REGRESSION_OUT_DIR}/sampling/main/{Country}/{City}/Fuse/Multi_Concat_pcahierachy/
@@ -12,7 +13,7 @@ source "${SCRIPT_DIR}/_lib.sh"
 
 TYPE="Fuse"
 # Verified against the legacy Multi_Concat_pcahierachy/scaler.pkl: the
-# regression that produced the published Fig 3 numbers was trained on
+# regression that produced the reported sampling results was trained on
 # Concat_spatial.pkl (1536-d). The bash placeholder "Concat.pkl" in the
 # legacy repo was a runtime symlink to this file.
 FEATURE_NAME="Concat_spatial"
@@ -34,5 +35,14 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
         --feature_len  "${FEATURE_LEN}" \
+        --hidden_dim 256 \
+        --num_heads 8 \
+        --num_layers 1 \
+        --lr 1e-4 \
+        --batch_size 128 \
+        --num_epochs 100 \
+        --warmup_epochs 10 \
+        --patience 5 \
+        --weight_decay 1e-4 \
         --device 0
 done
