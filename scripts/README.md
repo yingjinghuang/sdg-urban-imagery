@@ -97,9 +97,19 @@ bash scripts/run_ratio_no_geo.sh                 # optional non-spatial ratio ba
 bash scripts/run_sampling.sh                     # manuscript Fig. 2b-d + Fig. 3f-g
 bash scripts/run_sampling_no_geo.sh              # manuscript Fig. 3f baseline
 
-# 6. Representation analysis (manuscript Fig. 3b-c inputs)
-bash scripts/compute_clip_scores.sh
+# 6. Representation analysis (manuscript Fig. 3b-c raw-score route)
+bash scripts/compute_clip_scores.sh SV
+bash scripts/compute_clip_scores.sh RS
+python figures/_data_prep/prep_fig2bc_clip_concept.py --modality SV
+python figures/_data_prep/prep_fig2bc_clip_concept.py --modality RS
 ```
+
+The CLIP analysis is restricted to Los Angeles, as described in the
+Supplementary Information. The Supplement scores 14 street-view concepts
+(building, car, fence, pole, window, road, tree, chaotic, orderly, depressing,
+lively, safe, dilapidated, wealthy) and four satellite concepts (concrete,
+rooftop, vegetation, soil). Final manuscript Fig. 3b-c displays the four
+satellite concepts and the street-view subset building/window/road/tree.
 
 > The repository retains the historical `figures/fig1` and `figures/fig2`
 > folder names for notebook compatibility. They correspond to current
