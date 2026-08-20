@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Fold regression with the ImageNet baseline — manuscript Fig. 2a blue line.
+# Fold regression with the ImageNet-1K ResNet-50 baseline — manuscript Fig. 2a.
+# Each modality contributes a 2,048-d global-average-pooling feature block.
 # Uses the same downstream regression configuration as the proposed model,
 # matching Supplementary Table 9.
 
@@ -10,6 +11,7 @@ source "${SCRIPT_DIR}/_lib.sh"
 TYPE="Fuse"
 FEATURE_NAME="Concat_ImageNet"
 RUN_TAG="imagenet"
+FEATURE_LEN=2048
 
 list_regions | while read -r COUNTRY CITY _ _; do
     TARGETS="$(country_targets "${COUNTRY}")"
@@ -25,6 +27,7 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --geo_path     "${PROCESSED_DIR}/${COUNTRY}/${CITY}/geo.pkl" \
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
+        --feature_len "${FEATURE_LEN}" \
         --hidden_dim 256 \
         --num_heads 8 \
         --num_layers 1 \
