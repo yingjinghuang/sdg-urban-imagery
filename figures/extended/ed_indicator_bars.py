@@ -1,317 +1,199 @@
-"""
-Bar charts showing R² for each individual indicator in 4 representative cities.
-Layout: 2x2 panels, one per city, horizontal bars colored by SDG category.
+"""Render per-indicator held-out R² bars for four representative cities.
+
+The script reads the canonical five-fold regression outputs and indicator
+metadata configured by `configs/paths.yaml`. Fold rows are averaged per target
+before plotting. No machine-specific font, flag, or output paths are required.
 """
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
-from matplotlib.patches import FancyBboxPatch
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from PIL import Image
+from __future__ import annotations
+
+import argparse
+import re
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Font setup
-# ---------------------------------------------------------------------------
-FONT_PATH = "C:/Windows/Fonts/arial.ttf"
-font_prop = fm.FontProperties(fname=FONT_PATH)
-font_prop_bold = fm.FontProperties(fname=FONT_PATH, weight="bold")
-plt.rcParams.update({
-    "font.family": font_prop.get_name(),
-    "pdf.fonttype": 42,
-    "ps.fonttype": 42,
-    "axes.unicode_minus": False,
-})
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import yaml
+from matplotlib.patches import Patch
 
-# ---------------------------------------------------------------------------
-# SDG colors
-# ---------------------------------------------------------------------------
-SDG_COLORS = {
-    "SDG1": "#E5243B",
-    "SDG3": "#4C9F38",
-    "SDG4": "#C5192D",
-    "SDG5": "#FF3A21",
-    "SDG6": "#26BDE2",
-    "SDG8": "#A21942",
-    "SDG9": "#FD6925",
-    "SDG10": "#DD1367",
-    "SDG11": "#FD9D24",
-    "SDG13": "#3F7E44",
-    "SDG16": "#00689D",
-}
 
-# ---------------------------------------------------------------------------
-# Indicator -> SDG mapping per city
-# ---------------------------------------------------------------------------
-SDG_MAP = {
-    "Philadelphia": {
-        "logincome": "SDG1", "povertyline_below100": "SDG1", "povertyline_below200": "SDG1",
-        "cancercrud": "SDG3", "diabetescr": "SDG3", "obesitycru": "SDG3",
-        "lpacrudepr": "SDG3", "mhlthcrude": "SDG3", "phlthcrude": "SDG3",
-        "drove_alone_per_cbg": "SDG13", "publictrans_per_cbg": "SDG13",
-        "walkbike_per_cbg": "SDG13", "estpmiles": "SDG13", "estptrp": "SDG13",
-        "estvmiles": "SDG13", "estvtrp": "SDG13",
-        "logcrime": "SDG16", "logpetty": "SDG16",
-    },
-    "Melbourne": {
-        "med_hhinc": "SDG1",
-        "age65": "SDG3", "arthritis": "SDG3", "asthma": "SDG3", "cancer": "SDG3",
-        "diabetes": "SDG3", "heart_disease": "SDG3", "kidney_disease": "SDG3",
-        "lung_condition": "SDG3", "mental_health": "SDG3",
-        "edu_year12": "SDG4", "edu_noschool": "SDG4",
-        "mean_capgain": "SDG8", "med_capgain": "SDG8", "unemploy": "SDG8",
-        "internet": "SDG9",
-        "popden": "SDG11", "renter": "SDG11",
-        "drive": "SDG13", "publictrans": "SDG13", "walk": "SDG13", "bike": "SDG13",
-    },
-    "RiodeJaneiro": {
-        "BR01": "SDG1", "BR02": "SDG3", "BR12": "SDG4",
-        "BR13": "SDG5", "BR14": "SDG10", "BR17": "SDG11",
-    },
-    "HongKong": {
-        "HK02": "SDG1", "HK06": "SDG4", "HK07": "SDG8",
-        "HK15": "SDG10", "HK17": "SDG16",
-    },
-}
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CONFIG = REPO_ROOT / "configs" / "paths.yaml"
+DEFAULT_OUTPUT = REPO_ROOT / "data" / "figure_assets" / "indicator_bars.pdf"
 
-# ---------------------------------------------------------------------------
-# Readable indicator names
-# ---------------------------------------------------------------------------
-INDICATOR_LABELS = {
-    # US - Philadelphia
-    "logincome": "Income (log)",
-    "povertyline_below100": "Poverty <100%",
-    "povertyline_below200": "Poverty <200%",
-    "cancercrud": "Cancer",
-    "diabetescr": "Diabetes",
-    "obesitycru": "Obesity",
-    "lpacrudepr": "Physical inactivity",
-    "mhlthcrude": "Poor mental health",
-    "phlthcrude": "Poor physical health",
-    "drove_alone_per_cbg": "Drove alone",
-    "publictrans_per_cbg": "Public transit",
-    "walkbike_per_cbg": "Walk/bike",
-    "estpmiles": "Person-miles",
-    "estptrp": "Person-trips",
-    "estvmiles": "Vehicle-miles",
-    "estvtrp": "Vehicle-trips",
-    "logcrime": "Crime (log)",
-    "logpetty": "Petty crime (log)",
-    # Australia - Melbourne
-    "med_hhinc": "Median income",
-    "age65": "Age 65+",
-    "arthritis": "Arthritis",
-    "asthma": "Asthma",
-    "cancer": "Cancer",
-    "diabetes": "Diabetes",
-    "heart_disease": "Heart disease",
-    "kidney_disease": "Kidney disease",
-    "lung_condition": "Lung condition",
-    "mental_health": "Mental health",
-    "edu_year12": "Year 12 education",
-    "edu_noschool": "No schooling",
-    "mean_capgain": "Mean capital gain",
-    "med_capgain": "Median capital gain",
-    "unemploy": "Unemployment",
-    "internet": "Internet access",
-    "popden": "Population density",
-    "renter": "Renters",
-    "drive": "Drove",
-    "publictrans": "Public transit",
-    "walk": "Walked",
-    "bike": "Cycled",
-    # Brazil - Rio de Janeiro
-    "BR01": "Income (SDG 1)",
-    "BR02": "Health (SDG 3)",
-    "BR12": "Education (SDG 4)",
-    "BR13": "Gender (SDG 5)",
-    "BR14": "Inequality (SDG 10)",
-    "BR17": "Urbanization (SDG 11)",
-    # China - Hong Kong
-    "HK02": "Income (SDG 1)",
-    "HK06": "Education (SDG 4)",
-    "HK07": "Employment (SDG 8)",
-    "HK15": "Inequality (SDG 10)",
-    "HK17": "Safety (SDG 16)",
-}
-
-# ---------------------------------------------------------------------------
-# City configs
-# ---------------------------------------------------------------------------
 CITIES = [
-    {"name": "Philadelphia", "country": "US", "flag": "us.png", "label": "Philadelphia, US"},
-    {"name": "Melbourne", "country": "Australia", "flag": "au.png", "label": "Melbourne, Australia"},
-    {"name": "RiodeJaneiro", "country": "Brazil", "flag": "br.png", "label": "Rio de Janeiro, Brazil"},
-    {"name": "HongKong", "country": "China", "flag": "cn.png", "label": "Hong Kong, China"},
+    ("US", "Philadelphia", "Philadelphia, US"),
+    ("Australia", "Melbourne", "Melbourne, Australia"),
+    ("Brazil", "RiodeJaneiro", "Rio de Janeiro, Brazil"),
+    ("China", "HongKong", "Hong Kong, China"),
 ]
 
-DATA_ROOT = Path("../../data/regression_outputs/regmodels/Fold")
-FLAG_DIR = Path("D:/Workspace/01Project/00_SDG/images/src/flags")
-OUT_DIR = Path("D:/Workspace/01Project/00_SDG/images/extended")
+SDG_COLORS = {
+    1: "#E5243B",
+    3: "#4C9F38",
+    4: "#C5192D",
+    5: "#FF3A21",
+    6: "#26BDE2",
+    8: "#A21942",
+    9: "#FD6925",
+    10: "#DD1367",
+    11: "#FD9D24",
+    13: "#3F7E44",
+    16: "#00689D",
+}
+
+plt.rcParams["font.family"] = "sans-serif"
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
+plt.rcParams["axes.unicode_minus"] = False
 
 
-def load_city_data(country, city):
-    csv_path = DATA_ROOT / country / city / "Fuse" / "Multi_Concat" / "results.csv"
-    df = pd.read_csv(csv_path)
-    # Average across folds if multiple exist
+def load_paths(config_path: Path) -> dict[str, str]:
+    with config_path.open() as handle:
+        cfg = yaml.safe_load(handle)
+    pattern = re.compile(r"\$\{([^}]+)\}")
+    resolved: dict[str, str] = {}
+    for key, value in cfg.items():
+        if not isinstance(value, str):
+            resolved[key] = value
+            continue
+        while True:
+            match = pattern.search(value)
+            if match is None:
+                break
+            ref = match.group(1)
+            if ref not in resolved:
+                raise KeyError(f"Unresolved variable ${{{ref}}} in {config_path}")
+            value = value.replace(match.group(0), str(resolved[ref]))
+        resolved[key] = value
+    return resolved
+
+
+def load_city_data(
+    regression_root: Path,
+    processed_root: Path,
+    country: str,
+    city: str,
+) -> pd.DataFrame:
+    result_path = (
+        regression_root
+        / "fold"
+        / "main"
+        / country
+        / city
+        / "Fuse"
+        / "Token_Concat_spatial_self"
+        / "results.csv"
+    )
+    if not result_path.exists():
+        raise FileNotFoundError(result_path)
+
+    df = pd.read_csv(result_path)
+    if not {"target", "r2"}.issubset(df.columns):
+        raise ValueError(f"{result_path}: expected target/r2 columns")
     df = df.groupby("target", as_index=False)["r2"].mean()
-    return df
+
+    meta_path = processed_root / "0labels" / f"{country}.csv"
+    if not meta_path.exists():
+        raise FileNotFoundError(meta_path)
+    meta = pd.read_csv(meta_path)
+    if not {"ID", "SDG"}.issubset(meta.columns):
+        raise ValueError(f"{meta_path}: expected ID/SDG columns")
+
+    keep = [column for column in ("ID", "Code", "SDG") if column in meta.columns]
+    df = df.merge(
+        meta[keep].drop_duplicates("ID"),
+        left_on="target",
+        right_on="ID",
+        how="left",
+    ).drop(columns=["ID"])
+    df["SDG"] = pd.to_numeric(df["SDG"], errors="coerce").fillna(0).astype(int)
+    if "Code" in df.columns:
+        df["label"] = df["Code"].fillna(df["target"]).astype(str)
+    else:
+        df["label"] = df["target"].astype(str)
+    return df.sort_values("r2").reset_index(drop=True)
 
 
-def get_flag_image(flag_file, zoom=0.06):
-    img = Image.open(FLAG_DIR / flag_file)
-    return OffsetImage(np.array(img), zoom=zoom)
-
-
-def main():
+def render(
+    regression_root: Path,
+    processed_root: Path,
+    output_path: Path,
+) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(14, 12))
     axes = axes.flatten()
+    used_sdgs: set[int] = set()
 
-    # Collect all SDGs used for the legend
-    all_sdgs_used = set()
+    for index, (country, city, title) in enumerate(CITIES):
+        ax = axes[index]
+        df = load_city_data(regression_root, processed_root, country, city)
+        used_sdgs.update(sdg for sdg in df["SDG"].unique() if sdg in SDG_COLORS)
 
-    for idx, city_cfg in enumerate(CITIES):
-        ax = axes[idx]
-        city = city_cfg["name"]
-        country = city_cfg["country"]
-        sdg_map = SDG_MAP[city]
-
-        df = load_city_data(country, city)
-        df["sdg"] = df["target"].map(sdg_map)
-        df["label"] = df["target"].map(INDICATOR_LABELS).fillna(df["target"])
-        df["color"] = df["sdg"].map(SDG_COLORS)
-        df = df.sort_values("r2", ascending=True).reset_index(drop=True)
-
-        all_sdgs_used.update(df["sdg"].dropna().unique())
-
-        y_pos = np.arange(len(df))
+        colors = [SDG_COLORS.get(sdg, "#808080") for sdg in df["SDG"]]
+        positions = np.arange(len(df))
         bars = ax.barh(
-            y_pos, df["r2"], height=0.7,
-            color=df["color"].values, edgecolor="white", linewidth=0.3,
+            positions,
+            df["r2"],
+            height=0.7,
+            color=colors,
+            edgecolor="white",
+            linewidth=0.3,
             zorder=3,
         )
 
-        # Value labels on bars
-        for i, (val, bar) in enumerate(zip(df["r2"], bars)):
-            if val >= 0:
-                ax.text(
-                    val + 0.01, i, f"{val:.2f}",
-                    va="center", ha="left", fontsize=7,
-                    fontproperties=font_prop, color="#333333",
-                )
-            else:
-                ax.text(
-                    val - 0.01, i, f"{val:.2f}",
-                    va="center", ha="right", fontsize=7,
-                    fontproperties=font_prop, color="#333333",
-                )
+        for row, (value, bar) in enumerate(zip(df["r2"], bars)):
+            offset = 0.01 if value >= 0 else -0.01
+            alignment = "left" if value >= 0 else "right"
+            ax.text(value + offset, row, f"{value:.2f}", va="center", ha=alignment, fontsize=7)
 
-        ax.set_yticks(y_pos)
-        ax.set_yticklabels(df["label"], fontproperties=font_prop, fontsize=8)
-        ax.set_xlabel("R²", fontproperties=font_prop_bold, fontsize=10)
-
-        # X-axis limits
-        x_min = min(0, df["r2"].min() - 0.05)
-        ax.set_xlim(x_min, 1.05)
-
-        # Add vertical line at 0 if there are negative values
-        if df["r2"].min() < 0:
-            ax.axvline(0, color="gray", linewidth=0.5, linestyle="-", zorder=2)
-
-        # Grid
+        ax.set_yticks(positions)
+        ax.set_yticklabels(df["label"], fontsize=8)
+        ax.set_xlabel(r"Held-out $R^2$", fontsize=10)
+        lower = min(0.0, float(df["r2"].min()) - 0.05)
+        upper = max(1.0, float(df["r2"].max()) + 0.08)
+        ax.set_xlim(lower, upper)
+        if lower < 0:
+            ax.axvline(0, linewidth=0.5)
+        ax.xaxis.grid(True, linestyle="--", alpha=0.35, linewidth=0.5)
         ax.set_axisbelow(True)
-        ax.xaxis.grid(True, linestyle="--", alpha=0.4, linewidth=0.5)
-        ax.yaxis.grid(False)
-
-        # Clean spines
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-        ax.spines["left"].set_linewidth(0.5)
-        ax.spines["bottom"].set_linewidth(0.5)
-
-        ax.tick_params(axis="x", labelsize=8)
         ax.tick_params(axis="y", length=0)
+        ax.set_title(f"({chr(ord('a') + index)}) {title}", loc="left", fontsize=11)
 
-        # Panel label (a, b, c, d) and city name with flag
-        panel_letter = chr(ord("a") + idx)
+    handles = [
+        Patch(facecolor=SDG_COLORS[sdg], edgecolor="none", label=f"SDG {sdg}")
+        for sdg in sorted(used_sdgs)
+    ]
+    if handles:
+        fig.legend(handles=handles, loc="lower center", ncol=5, frameon=False, fontsize=9)
 
-        # Add flag icon after title text
-        try:
-            flag_img = get_flag_image(city_cfg["flag"], zoom=0.04)
-            title_text = f"({panel_letter}) {city_cfg['label']}"
-            t = ax.set_title(title_text, fontproperties=font_prop_bold, fontsize=11,
-                             loc="left", pad=10)
-            # Place flag to the right of the title using figure-level positioning
-            # We use a text-relative approach: annotate after title
-            fig.canvas.draw()
-            bbox = t.get_window_extent(renderer=fig.canvas.get_renderer())
-            inv = ax.transAxes.inverted()
-            title_end_x = inv.transform(bbox)[1][0]  # right edge in axes coords
-            ab = AnnotationBbox(
-                flag_img,
-                (title_end_x + 0.02, 1.04), xycoords="axes fraction",
-                box_alignment=(0, 0.5),
-                frameon=False,
-                pad=0,
-            )
-            ax.add_artist(ab)
-        except Exception:
-            ax.set_title(f"({panel_letter}) {city_cfg['label']}",
-                         fontproperties=font_prop_bold, fontsize=11, loc="left", pad=8)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.tight_layout(rect=[0, 0.05, 1, 1])
+    fig.savefig(output_path, dpi=300, bbox_inches="tight")
+    fig.savefig(output_path.with_suffix(".png"), dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"[extended] {output_path}")
 
-    # ---------------------------------------------------------------------------
-    # SDG Legend
-    # ---------------------------------------------------------------------------
-    sdg_order = sorted(all_sdgs_used, key=lambda s: int(s.replace("SDG", "")))
-    sdg_full_names = {
-        "SDG1": "SDG 1: No Poverty",
-        "SDG3": "SDG 3: Good Health",
-        "SDG4": "SDG 4: Quality Education",
-        "SDG5": "SDG 5: Gender Equality",
-        "SDG8": "SDG 8: Decent Work",
-        "SDG9": "SDG 9: Industry & Innovation",
-        "SDG10": "SDG 10: Reduced Inequalities",
-        "SDG11": "SDG 11: Sustainable Cities",
-        "SDG13": "SDG 13: Climate Action",
-        "SDG16": "SDG 16: Peace & Justice",
-    }
-    legend_handles = []
-    for sdg in sdg_order:
-        patch = FancyBboxPatch(
-            (0, 0), 1, 1,
-            boxstyle="round,pad=0.1",
-            facecolor=SDG_COLORS[sdg],
-            edgecolor="none",
-        )
-        legend_handles.append(patch)
 
-    legend_labels = [sdg_full_names.get(s, s) for s in sdg_order]
-    fig.legend(
-        legend_handles, legend_labels,
-        loc="lower center",
-        ncol=5,
-        frameon=False,
-        fontsize=9,
-        prop=font_prop,
-        handlelength=1.2,
-        handleheight=0.9,
-        columnspacing=1.0,
-        bbox_to_anchor=(0.5, -0.01),
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    if not args.config.exists():
+        raise FileNotFoundError(args.config)
+    paths = load_paths(args.config)
+    render(
+        Path(paths["regression_out_dir"]),
+        Path(paths["processed_dir"]),
+        args.output,
     )
-
-    plt.tight_layout(rect=[0, 0.04, 1, 1])
-    plt.subplots_adjust(hspace=0.35, wspace=0.35)
-
-    # Save
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    for ext in ("png", "pdf"):
-        out_path = OUT_DIR / f"indicator_bars.{ext}"
-        fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
-        print(f"Saved: {out_path}")
-
-    plt.close()
 
 
 if __name__ == "__main__":
