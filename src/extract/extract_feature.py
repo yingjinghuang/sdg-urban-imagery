@@ -7,7 +7,8 @@ ResNet-50 pretrained on ImageNet-1K, removes the classification head, and writes
 the 2,048-dimensional global-average-pooling features.
 
 Multi-GPU via ``torch.nn.DataParallel`` if available. Mixed precision via
-``autocast``. Outputs are stored in HDF5 chunks.
+``autocast``. Outputs are streamed to one appendable HDF5 table under the
+canonical key ``data``.
 
 Usage:
     python -m src.extract.extract_feature \
@@ -131,7 +132,7 @@ def extract_features(
     save_every: int = 50_000,
     feature_dim: int = 768,
 ) -> None:
-    """Stream features to HDF5 in chunks of ``save_every`` rows."""
+    """Stream features to the HDF5 ``data`` table in chunks."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
 
     n_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
@@ -181,10 +182,26 @@ def extract_features(
 
 
 def _flush(buffer: pd.DataFrame, save_path: str, part: int) -> tuple[pd.DataFrame, int]:
+    """Append one buffered chunk to the canonical HDF5 ``data`` table.
+
+    The first flush opens the file in ``w`` mode so rerunning extraction does
+    not silently append duplicate rows to a previous output. Subsequent chunks
+    append to the same table. This keeps streaming memory use while presenting
+    one stable key to downstream readers.
+    """
     if buffer.empty:
         return buffer, part
-    buffer.to_hdf(save_path, key=f"part_{part}", mode="a")
-    print(f"[extract] wrote part_{part} ({len(buffer)} rows) -> {save_path}")
+
+    first = part == 0
+    buffer.to_hdf(
+        save_path,
+        key="data",
+        mode="w" if first else "a",
+        format="table",
+        append=not first,
+        index=False,
+    )
+    print(f"[extract] wrote chunk {part} ({len(buffer)} rows) -> {save_path}:/data")
     return pd.DataFrame(), part + 1
 
 
