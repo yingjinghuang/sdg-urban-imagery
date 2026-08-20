@@ -18,6 +18,15 @@ source "${SCRIPT_DIR}/_lib.sh"
 MODALITY="${1:?usage: extract_features.sh <SV|RS> <self|spatial>}"
 VARIANT="${2:?usage: extract_features.sh <SV|RS> <self|spatial>}"
 
+if [ "${MODALITY}" != "SV" ] && [ "${MODALITY}" != "RS" ]; then
+    echo "[extract] modality must be SV or RS, got: ${MODALITY}" >&2
+    exit 2
+fi
+if [ "${VARIANT}" != "self" ] && [ "${VARIANT}" != "spatial" ]; then
+    echo "[extract] variant must be self or spatial, got: ${VARIANT}" >&2
+    exit 2
+fi
+
 BATCH_SIZE_PER_GPU="${BATCH_SIZE_PER_GPU:-2048}"
 N_GPUS=$(echo "${CUDA_DEVICES}" | awk -F',' '{print NF}')
 BATCH_SIZE=$((BATCH_SIZE_PER_GPU * N_GPUS))
@@ -39,6 +48,11 @@ list_regions | while read -r COUNTRY CITY SV_EPOCH RS_EPOCH; do
 
     mkdir -p "$(dirname "${RAW_OUT}")" "$(dirname "${UNIT_OUT}")"
 
+    if [ ! -f "${IMG_MANIFEST}" ]; then
+        echo "[extract] SKIP ${COUNTRY}/${CITY}/${MODALITY} — missing manifest ${IMG_MANIFEST}" >&2
+        continue
+    fi
+
     echo "[extract] ${COUNTRY}/${CITY}/${MODALITY}/${VARIANT} ep${EPOCH}"
 
     CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/src/extract/extract_feature.py" \
@@ -47,9 +61,12 @@ list_regions | while read -r COUNTRY CITY SV_EPOCH RS_EPOCH; do
         --data_path "${IMG_MANIFEST}" \
         --save_path "${RAW_OUT}"
 
+    # Aggregate with the same modality-specific manifest used for extraction.
+    # In particular, RS features must be joined against rs_paths.pkl rather
+    # than the street-view paths.pkl manifest.
     "${PYTHON}" "${REPO_ROOT}/src/extract/aggregate_to_unit.py" \
         --feature_path "${RAW_OUT}" \
-        --meta_path "${PROCESSED_DIR}/${COUNTRY}/${CITY}/paths.pkl" \
+        --meta_path "${IMG_MANIFEST}" \
         --save_path "${UNIT_OUT}" \
         --arch VITB
 done
