@@ -2,6 +2,12 @@
 # Feature-guided sampling regression — main framework, with geo.
 # Uses the feature-guided sample-selection result. Feeds manuscript
 # Fig. 2b/c/d and Fig. 3f/g.
+#
+# The regression representation is identical to the main/random-sampling
+# representation: four 768-d visual tokens
+#   SV-spatial, RS-spatial, SV-self, RS-self
+# stored in Concat_spatial_self.pkl (3072 dimensions total).
+# --feature_len is the width of each token, not the total feature width.
 # Regression hyperparameters are pinned to Supplementary Table 9.
 #
 # Output:
@@ -12,13 +18,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
 TYPE="Fuse"
-# Verified against the legacy Multi_Concat_pcahierachy/scaler.pkl: the
-# regression that produced the reported sampling results was trained on
-# Concat_spatial.pkl (1536-d). The bash placeholder "Concat.pkl" in the
-# legacy repo was a runtime symlink to this file.
-FEATURE_NAME="Concat_spatial"
+FEATURE_NAME="Concat_spatial_self"
 RUN_TAG="main"
-FEATURE_LEN="${FEATURE_LEN:-1536}"
+FEATURE_LEN="${FEATURE_LEN:-768}"
 
 list_regions | while read -r COUNTRY CITY _ _; do
     TARGETS="$(country_targets "${COUNTRY}")"
