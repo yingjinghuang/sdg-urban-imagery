@@ -1,23 +1,21 @@
 # Conda environment for sdg-urban-imagery.
 #
-# This file pins major libraries to versions known to work with the codebase.
+# The Supplementary Information reports Python 3.10 and PyTorch 2.6.0.
+# Torchvision 0.21.0 is the matching release for PyTorch 2.6.0. PyTorch 2.6
+# is installed via pip because official 2.6 binaries are distributed as wheels;
+# the exact CUDA wheel can be selected separately when needed for a GPU system.
 #
 # Create:    conda env create -f environment.yml
 # Activate:  conda activate sdg
 
 name: sdg
 channels:
-  - pytorch
-  - nvidia
   - conda-forge
   - defaults
 
 dependencies:
   - python=3.10
   - pip
-  - pytorch=2.1.*
-  - torchvision=0.16.*
-  - pytorch-cuda=12.1
   - numpy=1.26.*
   - pandas=2.1.*
   - scipy=1.11.*
@@ -38,6 +36,8 @@ dependencies:
   - jupyter
   - ipykernel
   - pip:
+      - torch==2.6.0
+      - torchvision==0.21.0
       - timm==0.9.16
       - transformers==4.36.2
       - ftfy
