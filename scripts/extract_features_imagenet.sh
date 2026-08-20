@@ -13,8 +13,18 @@ BATCH_SIZE=$((BATCH_SIZE_PER_GPU * N_GPUS))
 for MODALITY in SV RS; do
     list_regions | while read -r COUNTRY CITY _ _; do
         UNIT_OUT="${FEATURES_UNIT_DIR}/${COUNTRY}/${CITY}/${MODALITY}/ImageNet.pkl"
-        IMG_MANIFEST="${PROCESSED_DIR}/${COUNTRY}/${CITY}/paths.pkl"
+        if [ "${MODALITY}" = "SV" ]; then
+            IMG_MANIFEST="${PROCESSED_DIR}/${COUNTRY}/${CITY}/paths.pkl"
+        else
+            IMG_MANIFEST="${PROCESSED_DIR}/${COUNTRY}/${CITY}/rs_paths.pkl"
+        fi
+
         mkdir -p "$(dirname "${UNIT_OUT}")"
+        if [ ! -f "${IMG_MANIFEST}" ]; then
+            echo "[extract-imagenet] SKIP ${COUNTRY}/${CITY}/${MODALITY} — missing manifest ${IMG_MANIFEST}" >&2
+            continue
+        fi
+
         echo "[extract-imagenet] ${COUNTRY}/${CITY}/${MODALITY}"
         CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/src/extract/extract_feature.py" \
             --batch_size "${BATCH_SIZE}" \
