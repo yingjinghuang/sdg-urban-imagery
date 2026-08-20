@@ -1,16 +1,20 @@
-"""Multi-feature regression entry point — Fig 3 sampling experiments.
+"""Compatibility entry point for multi-feature regression experiments.
 
-Functionally a thin alias to :mod:`token_reg`, kept as a separate entry
-point so the output-path naming used by the figure-prep notebooks
-(``Multi_Concat_pcahierachy/results.csv``) remains stable. The model
-and training loop are identical to ``token_reg``; the distinguishing
-feature is that this entry is called with PCA-reduced inputs
-(``Concat_spatial_self_pca99.pkl``) and a sampling-derived community
-file (``samples/pcahierachy.pkl``).
+This module is intentionally a thin alias to :mod:`token_reg`. It is kept
+as a separate entry point because the existing sampling and baseline figure
+notebooks expect output directories with the historical ``Multi_*`` naming.
+The model architecture, optimization, early stopping, and metric computation
+are therefore identical to ``token_reg``.
 
-If you are starting fresh, just use ``token_reg`` and choose your own
-output naming. This alias exists for compatibility with the existing
-figure notebooks.
+The concrete input representation is selected by each launcher. In the
+current paper-reproduction scripts, ``run_sampling.sh`` and
+``run_sampling_no_geo.sh`` use the 1536-dimensional ``Concat_spatial.pkl``
+input together with the feature-guided sampling definitions, while the
+segmentation baseline supplies its own 150-dimensional feature input.
+
+Paper-reproduction launchers pass the regression hyperparameters reported in
+Supplementary Table 9 explicitly; the same values are also the defaults in
+``token_reg.py``.
 """
 
 from __future__ import annotations
