@@ -59,7 +59,7 @@ The commands below execute notebooks in place:
 jupyter nbconvert --to notebook --execute --inplace path/to/notebook.ipynb
 ```
 
-The original plotting notebooks use `data/Arial.ttf` for exact manuscript typography. The font file is not distributed by this repository. If you need pixel-identical typography, provide a locally licensed copy at that path; otherwise use a locally available sans-serif font. The numerical results are unaffected.
+Some historical plotting notebooks use `data/Arial.ttf` for exact manuscript typography. The font file is not distributed by this repository. If you need pixel-identical typography, provide a locally licensed copy at that path; otherwise use a locally available sans-serif font. The numerical results are unaffected.
 
 ---
 
@@ -188,13 +188,13 @@ data/processed/fig/fig2_geo_reg_moransi_results.csv
 
 ## Supplementary per-region figures
 
-The per-region fold, random-sampling, and feature-guided-sampling Supplementary figures now have a maintained canonical plotting script:
+The per-region fold, random-sampling, and feature-guided-sampling Supplementary figures have one maintained canonical plotting script:
 
 ```bash
 python figures/supplementary/batch_per_city_figures.py --strict
 ```
 
-The script reads directly from the configured canonical regression hierarchy:
+The script reads directly from:
 
 ```text
 fold/main/<Country>/<City>/Fuse/Token_Concat_spatial_self/results.csv
@@ -208,11 +208,39 @@ It reads indicator labels/SDG categories from `<processed_dir>/0labels/<Country>
 python figures/supplementary/batch_per_city_figures.py --country US --city Boston --strict
 ```
 
-The older duplicate per-city fold script/notebook have been removed so there is now one maintained entry point for these Supplementary figures.
+The previous duplicate per-city fold script/notebook were removed so there is now one maintained entry point.
 
 ## Extended Data figures
 
-The `figures/extended/` notebooks are retained from the analysis workspace and still contain some historical path/schema assumptions. They are **not part of the maintained main-figure or per-region Supplementary reproduction routes described above**. Their deposited inputs and outputs remain available for review; normalizing those notebooks can be done separately without changing the main-paper reproduction path.
+The full random-sampling and feature-guided-sampling sweeps now have a maintained renderer that reads the same canonical outputs as the main analysis:
+
+```bash
+python figures/extended/sampling_curves.py --strict
+```
+
+It writes:
+
+```text
+data/figure_assets/S_random_sampling.pdf
+data/figure_assets/S_strategic_sampling.pdf
+```
+
+and PNG copies. The two older workspace-specific sampling notebooks were removed after this renderer replaced them.
+
+Some other Extended Data notebooks are intentionally retained as **archival sensitivity analyses**, not as final-model one-command reproduction scripts. In particular, the historical top-k k-center analysis, low-income-area prediction analysis, and pretraining-epoch sweep depend on intermediate experiments that the final canonical launchers do not produce. Redirecting those notebooks to the final outputs would change the scientific question rather than merely fix a path. See `figures/extended/README.md` for the maintained/archival split.
+
+## Full representation pretraining
+
+Full imagery pretraining is not required to regenerate the reported downstream analyses because pretrained checkpoints are included in the reviewer/data package. For users with independent access to the source imagery, the maintained launchers are:
+
+```bash
+bash scripts/pretrain_sv.sh <self|spatial> <city_tag>
+bash scripts/pretrain_rs.sh <self|spatial> <tag>
+```
+
+The launchers use the manuscript configuration: ViT-B, AdamW, total batch size 1024, initial optimizer learning rate `1e-5`, weight decay `1e-6`, 100 street-view epochs and 50 satellite epochs. The underlying cleaned MoCo-v3 entry points use the supplied `--lr` directly rather than applying the stock MoCo batch-size rescaling. A 10-epoch warm-up is retained from the implementation; the manuscript does not separately report that warm-up value.
+
+The current pretraining code has no external experiment-tracking service dependency; TensorBoard logging is local and included in `environment.yml`.
 
 ## Compute scope
 
