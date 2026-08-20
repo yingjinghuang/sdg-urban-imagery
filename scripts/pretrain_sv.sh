@@ -3,11 +3,15 @@
 # self-contrastive or spatial-contrastive objective.
 #
 # Usage:
-#   bash scripts/pretrain_sv.sh self      <city_tag> [resume_ckpt]
-#   bash scripts/pretrain_sv.sh spatial   <city_tag> [resume_ckpt]
+#   bash scripts/pretrain_sv.sh self    <city_tag>
+#   bash scripts/pretrain_sv.sh spatial <city_tag> [init_ckpt]
+#   bash scripts/pretrain_sv.sh <objective> <city_tag> [init_ckpt] [resume_ckpt]
 #
-# <city_tag> identifies the training dataset, e.g. "cities100-1m" for the
-# global self-contrastive pretraining, or a single city tag for fine-tuning.
+# `init_ckpt` initializes model weights while starting a fresh optimizer and
+# epoch counter. This is the appropriate mode when initializing a spatial-
+# contrastive run from a self-contrastive checkpoint. `resume_ckpt` instead
+# restores model, optimizer, scaler, and epoch for an interrupted same run.
+#
 # The corresponding training-set pickle must exist at
 #   ${PROCESSED_DIR}/train_datasets/{self|spatial}_<city_tag>.pkl
 #
@@ -28,12 +32,17 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/_lib.sh"
 
-OBJECTIVE="${1:?usage: pretrain_sv.sh <self|spatial> <city_tag> [resume_ckpt]}"
-CITY_TAG="${2:?usage: pretrain_sv.sh <self|spatial> <city_tag> [resume_ckpt]}"
-RESUME_CKPT="${3:-}"
+OBJECTIVE="${1:?usage: pretrain_sv.sh <self|spatial> <city_tag> [init_ckpt] [resume_ckpt]}"
+CITY_TAG="${2:?usage: pretrain_sv.sh <self|spatial> <city_tag> [init_ckpt] [resume_ckpt]}"
+INIT_CKPT="${3:-}"
+RESUME_CKPT="${4:-}"
 
 if [ "${OBJECTIVE}" != "self" ] && [ "${OBJECTIVE}" != "spatial" ]; then
     echo "[pretrain-sv] objective must be self or spatial, got: ${OBJECTIVE}" >&2
+    exit 2
+fi
+if [ -n "${INIT_CKPT}" ] && [ -n "${RESUME_CKPT}" ]; then
+    echo "[pretrain-sv] use either init_ckpt or resume_ckpt, not both" >&2
     exit 2
 fi
 
@@ -48,9 +57,11 @@ fi
 
 mkdir -p "${SAVE_DIR}"
 
-RESUME_ARG=()
-if [ -n "${RESUME_CKPT}" ]; then
-    RESUME_ARG=(--resume "${RESUME_CKPT}")
+CHECKPOINT_ARG=()
+if [ -n "${INIT_CKPT}" ]; then
+    CHECKPOINT_ARG=(--pretrained "${INIT_CKPT}")
+elif [ -n "${RESUME_CKPT}" ]; then
+    CHECKPOINT_ARG=(--resume "${RESUME_CKPT}")
 fi
 
 CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/pretrain/moco_sv.py" \
@@ -61,5 +72,5 @@ CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/pretrain/moco_s
     --stop-grad-conv1 --moco-m-cos --moco-t=.2 \
     --dist-url "tcp://localhost:${PORT}" \
     --multiprocessing-distributed --world-size 1 --rank 0 \
-    "${RESUME_ARG[@]}" \
+    "${CHECKPOINT_ARG[@]}" \
     "${DATASET_PATH}"
