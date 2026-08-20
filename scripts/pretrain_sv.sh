@@ -3,8 +3,8 @@
 # self-contrastive or spatial-contrastive objective.
 #
 # Usage:
-#   bash scripts/pretrain_sv.sh self      <city_tag>   # self-contrastive
-#   bash scripts/pretrain_sv.sh spatial   <city_tag>   # spatial-contrastive
+#   bash scripts/pretrain_sv.sh self      <city_tag> [resume_ckpt]
+#   bash scripts/pretrain_sv.sh spatial   <city_tag> [resume_ckpt]
 #
 # <city_tag> identifies the training dataset, e.g. "cities100-1m" for the
 # global self-contrastive pretraining, or a single city tag for fine-tuning.
@@ -12,16 +12,17 @@
 #   ${PROCESSED_DIR}/train_datasets/{self|spatial}_<city_tag>.pkl
 #
 # Manuscript pretraining settings:
-#   architecture: ViT-B
-#   optimizer:    AdamW
-#   batch size:   1024
-#   base LR:      1e-5
-#   weight decay: 1e-6
-#   epochs:       100 for street-view imagery
+#   architecture:         ViT-B
+#   optimizer:            AdamW
+#   total batch size:     1024
+#   initial optimizer LR: 1e-5
+#   weight decay:         1e-6
+#   epochs:               100 for street-view imagery
 #
-# The MoCo-v3 training code uses its standard 10-epoch warm-up. The manuscript
-# does not report a separate warm-up value, so we keep the implementation
-# default explicitly here rather than the old stock-launcher value of 40.
+# The MoCo-v3 training code uses a 10-epoch warm-up. The manuscript does not
+# report a separate warm-up value, so the implementation default is retained
+# explicitly here. The --lr value is used directly by the optimizer and is not
+# rescaled by batch_size/256 in the cleaned pretraining entry point.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,9 +48,9 @@ fi
 
 mkdir -p "${SAVE_DIR}"
 
-RESUME_ARG=""
+RESUME_ARG=()
 if [ -n "${RESUME_CKPT}" ]; then
-    RESUME_ARG="--pretrained ${RESUME_CKPT}"
+    RESUME_ARG=(--resume "${RESUME_CKPT}")
 fi
 
 CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/pretrain/moco_sv.py" \
@@ -60,5 +61,5 @@ CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/pretrain/moco_s
     --stop-grad-conv1 --moco-m-cos --moco-t=.2 \
     --dist-url "tcp://localhost:${PORT}" \
     --multiprocessing-distributed --world-size 1 --rank 0 \
-    ${RESUME_ARG} \
+    "${RESUME_ARG[@]}" \
     "${DATASET_PATH}"
