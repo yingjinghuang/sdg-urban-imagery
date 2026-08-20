@@ -4,7 +4,7 @@ Code and data-release repository for the paper.
 
 > Huang Y., Li Y., Zhang F., et al. "Urban imagery reveals multidimensional sustainability of neighborhoods across global cities." *(Under review)*.
 
-This repository provides the full pipeline to reproduce the main and supplementary analyses of the paper, from raw imagery preprocessing through self/spatial-contrastive representation learning to SDG indicator regression and figure generation.
+This repository provides the analysis pipeline used for the paper, from the deposited/processed neighborhood inputs through self/spatial-contrastive representation learning, SDG-indicator regression, sampling experiments, and figure generation. Raw-source-specific ingestion differs across countries and is documented separately; reviewers can reproduce the reported downstream analyses from the deposited processed tables and neighborhood representations without redistributing the original imagery.
 
 ---
 
@@ -15,15 +15,15 @@ sdg-urban-imagery/
 ├── configs/                 Path and city manifests (edit paths.yaml for your machine)
 ├── pretrain/                Self/spatial-contrastive pretraining (derived from facebookresearch/moco-v3)
 ├── src/
-│   ├── preprocess/          Country-level label preparation, scaling, geo-joining
+│   ├── preprocess/          Portable label preparation/scaling helpers
 │   ├── datasets/            Spatial-contrastive training-dataset construction
 │   ├── extract/             Per-image feature extraction + neighborhood aggregation
 │   ├── fuse/                Multi-modal feature fusion (SV ⊕ RS)
 │   ├── analysis/            CLIP-concept probing, residual analysis
 │   └── regression/          Token regression (Fold / Ratio / Sampling experiments)
-├── scripts/                 Bash launchers (read paths from configs/paths.yaml)
+├── scripts/                 Bash launchers + figure-input compatibility staging
 ├── figures/
-│   ├── _data_prep/          Per-panel data preparation (.py)
+│   ├── _data_prep/          Per-panel data preparation (.py / .ipynb)
 │   ├── fig1/                Legacy internal folder for current manuscript Fig. 2 panels
 │   ├── fig2/                Legacy internal folder for current manuscript Fig. 3 panels
 │   ├── extended/            Extended Data Figures
@@ -34,7 +34,7 @@ sdg-urban-imagery/
     └── data_schema.md
 ```
 
-> **Figure-folder note.** The internal `figures/fig1` and `figures/fig2` directory names are retained for compatibility with the analysis notebooks. In the current manuscript, these correspond to **Fig. 2 (model performance)** and **Fig. 3 (mechanisms / representation analyses)**, respectively. Manuscript Fig. 1 is the conceptual overview.
+> **Figure-folder note.** The internal `figures/fig1` and `figures/fig2` directory names are retained for compatibility with the original analysis notebooks. In the current manuscript, these correspond to **Fig. 2 (model performance)** and **Fig. 3 (mechanisms / representation analyses)**, respectively. Manuscript Fig. 1 is the conceptual overview.
 
 ---
 
@@ -48,11 +48,11 @@ sdg-urban-imagery/
 | Pretrained MoCo-v3 ViT-B backbones | ~6 GB | Zenodo — DOI: [10.5281/zenodo.20483916](https://doi.org/10.5281/zenodo.20483916) | Restricted during peer review; public on acceptance |
 | Raw satellite imagery | — | Google Static Maps API, ~0.6 m resolution | Via Google Maps Platform API access; not redistributed |
 | Raw street view imagery | — | Google Street View Static API | Via API key; not redistributed |
-| Sustainability indicators (raw) | — | Per-country statistical agencies | See `docs/data_schema.md` |
+| Sustainability indicators (raw) | — | Per-country statistical agencies | See `docs/data_schema.md` and the manuscript Supplementary Information |
 
 The Zenodo record is restricted during peer review. Editors and reviewers can be given a private Zenodo reviewer-access link by the corresponding author. The record will be made public upon acceptance.
 
-The original satellite and street-view imagery is not redistributed because it was obtained through third-party APIs. The deposited neighborhood-level representations and processed tables are sufficient for reproducing the downstream regression, sampling, and figure-generation analyses without redistributing the original imagery.
+The original satellite and street-view imagery is not redistributed because it was obtained through third-party APIs. The deposited neighborhood-level representations and processed tables are sufficient for reproducing the downstream regression, sampling, and main-figure analyses without redistributing the original imagery.
 
 ---
 
@@ -90,25 +90,21 @@ conda activate sdg
 
 ### 2. Configure paths
 
-Copy `configs/paths.example.yaml` to `configs/paths.yaml` and point each entry at your local data root. All scripts read paths from this file.
+Copy `configs/paths.example.yaml` to `configs/paths.yaml` and point each entry at your local data/output roots. All maintained launchers read paths from this file.
 
-### 3. Pull the public dataset
+### 3. Obtain the reviewer/public data bundle
 
-```bash
-# Restricted-access record during peer review; editors/reviewers can use
-# the private Zenodo reviewer-access link provided by the corresponding author.
-# Once openly accessible after acceptance:
-#   zenodo_get 10.5281/zenodo.20483916 -o ./data
-```
+During peer review, use the private Zenodo reviewer-access link supplied by the corresponding author. Once the record is public, download DOI `10.5281/zenodo.20483916` and unpack the deposited processed labels, neighborhood representations, split definitions, regression outputs, and checkpoints according to `data/README.md`.
 
 ### 4. Run the regression pipeline (current manuscript Figs. 2–3)
 
 ```bash
-bash scripts/run_fold.sh             # 5-fold explanatory analysis; manuscript Fig. 2a / Fig. 3a
-bash scripts/run_ratio.sh            # random-sampling scaling; manuscript Fig. 2b-d
-bash scripts/run_sampling.sh         # feature-guided sampling; manuscript Fig. 2b-d / Fig. 3f-g
+bash scripts/run_fold.sh             # 5-fold explanatory analysis; Fig. 2a / Fig. 3a
+bash scripts/run_ratio.sh            # random-sampling scaling; Fig. 2b-d
+bash scripts/select_kcenter.sh        # feature-guided split definitions (skip if deposited)
+bash scripts/run_sampling.sh         # feature-guided sampling; Fig. 2b-d / Fig. 3f-g
 bash scripts/run_fold_single_modal.sh
-bash scripts/run_sampling_no_geo.sh  # non-spatial baseline for manuscript Fig. 3f
+bash scripts/run_sampling_no_geo.sh  # non-spatial baseline for Fig. 3f-g
 ```
 
 For the visual baselines in manuscript Fig. 2a:
@@ -118,31 +114,23 @@ bash scripts/run_fold_imagenet.sh
 bash scripts/run_fold_segmentation.sh
 ```
 
-### 5. Regenerate figures
+### 5. Stage figure inputs and regenerate panels
+
+The cleaned regression launchers use a canonical output hierarchy, while several original plotting notebooks retain their historical filenames/paths. Stage the small compatibility tables once after regression:
 
 ```bash
-jupyter notebook figures/fig1/   # legacy folder name; current manuscript Fig. 2
-jupyter notebook figures/fig2/   # legacy folder name; current manuscript Fig. 3
+python scripts/prepare_figure_inputs.py --strict
 ```
 
-Each panel notebook reads its inputs from `regression_outputs/` and writes a panel PDF to `figures/_out/`. See `docs/reproduce_main_figures.md` for the full per-figure mapping.
+Then follow the exact per-panel commands in [`docs/reproduce_main_figures.md`](docs/reproduce_main_figures.md). The guide uses executable `.ipynb`/`.py` filenames that exist in the repository and documents which panels use deposited prepared tables rather than raw third-party imagery.
 
 ---
 
 ## Optional: rerun pretraining from scratch
 
-Pretraining requires the raw imagery, which is not redistributed because it is obtained through third-party APIs. Satellite imagery in the paper was obtained through the Google Static Maps API at approximately 0.6 m spatial resolution, while street-view imagery was obtained through the Google Street View Static API. Pretrained checkpoints (~6 GB) are included in the Zenodo deposit, so most users can skip this step.
+Pretraining requires the raw imagery, which is not redistributed because it is obtained through third-party APIs. Satellite imagery in the paper was obtained through the Google Static Maps API at approximately 0.6 m spatial resolution, while street-view imagery was obtained through the Google Street View Static API. Pretrained checkpoints (~6 GB) are included in the Zenodo deposit, so most reviewers/users can skip this step.
 
-To rerun pretraining on a configured multi-GPU system:
-
-```bash
-bash scripts/pretrain_sv.sh self    cities100-1m
-bash scripts/pretrain_sv.sh spatial cities100-1m  pretrain_ckpts/self_cities100-1m.pth.tar
-bash scripts/pretrain_rs.sh self    cities100-1m
-bash scripts/pretrain_rs.sh spatial cities100-1m  pretrain_ckpts/self_rs_cities100-1m.pth.tar
-```
-
-See `scripts/README.md` for the complete pipeline.
+To rerun pretraining on a configured multi-GPU system, use the launchers under `scripts/`. See `scripts/README.md` for the complete pipeline and the manuscript/Supplementary Information for the reported pretraining configuration.
 
 ---
 
