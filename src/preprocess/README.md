@@ -1,60 +1,63 @@
-# `src/preprocess/` — country-level data preparation
+# `src/preprocess/` — data preparation
 
-The preprocess stage produces, for each (Country, City) pair, the
-canonical artifacts that the rest of the pipeline consumes:
+This directory contains the maintained preprocessing utilities used by the
+current repository. For each `(Country, City)` pair, the downstream pipeline
+expects the following canonical files:
 
-| File | Schema |
+| File | Schema / role |
 |---|---|
-| `labels.pkl` | raw per-neighborhood indicators (one column per SDG indicator code, `GEOID`, `geometry`) |
-| `labels_norm.pkl` | z-scored labels with |z|>3 outliers masked to NaN; sub-50-non-NaN columns dropped |
-| `scalers.joblib` | fitted `StandardScaler` per indicator (for inversion) |
-| `paths.pkl` | image-to-neighborhood manifest for street view |
-| `rs_paths.pkl` | same, for satellite |
-| `geo.pkl` | `GEOID`, `geometry` only — used for centroid coordinates in regression |
-| `samples/fold5.pkl` / `samples/ratio.pkl` / `samples/pcahierachy.pkl` | train/test split definitions |
+| `labels.pkl` | Per-neighborhood sustainability indicators plus `GEOID` and geometry |
+| `labels_norm.pkl` | Standardized labels used by regression |
+| `scalers.joblib` | Fitted label scalers, where applicable |
+| `paths.pkl` | Street-view image-to-neighborhood manifest |
+| `rs_paths.pkl` | Satellite image-to-neighborhood manifest |
+| `geo.pkl` | `GEOID` and neighborhood geometry used for geographic coordinates |
+| `samples/fold5.pkl` | Five-fold train/test definitions |
+| `samples/ratio.pkl` | Random partial-survey train/test definitions |
+| `samples/pcahierachy.pkl` | Feature-guided partial-survey train/test definitions |
 
-## What this directory provides
+## Maintained preprocessing utilities
 
-Three portable, country-agnostic steps:
+### `compute_country_tiles.py`
 
-| Script | Replaces (legacy) | Purpose |
-|---|---|---|
-| `compute_country_tiles.py` | `1preprocess_country_raw/{fr,pt,hk,ng}_boundary.ipynb` | Convert country polygons → satellite-download bounding-box manifest. |
-| `scale_labels.py` | `1preprocess/label_scale_all.py`, `label_scale_{au,br,ch,fr,pt,ng,us}.ipynb` | Z-score outliers + standardize per indicator; reads per-country target list from `configs/cities.yaml`. |
-| (existing) `src/datasets/spatial_contrastive.py` | `2build_train_datasets/spatial_contrastive_city{,_rs}.py` | Build same-neighborhood image-pair training set. |
+Builds satellite-download bounding-box manifests from country/city boundary
+polygons.
 
-## What this directory does NOT provide
+### `scale_labels.py`
 
-The **raw-source-specific ingestion** that turns each country's source
-data (US ACS XLS, AU ABS DataPacks, BR IBGE microdata, etc.) into
-`labels.pkl`. These notebooks live in the original repo under
-`1preprocess_country_raw/{br,fr,hk,ng,pt}.ipynb` and `1preprocess/label_scale_{country}.ipynb`,
-and are intrinsically per-country (different sources, different schemas).
+Standardizes the country-specific sustainability indicators used by the
+regression pipeline. Target lists are read from `configs/cities.yaml`.
 
-> **For reviewers / users reproducing the paper:** the processed
-> `labels.pkl` for all 20 region-folders is included in the public
-> Zenodo deposit, so you do not need to re-run the per-country
-> ingestion. The pipeline can be reproduced starting from these files.
+### `src/datasets/spatial_contrastive.py`
 
-If you do want to re-ingest from raw national data sources, the original
-country-specific notebooks are preserved at:
+Builds the image-pair datasets used for spatial-contrastive pretraining.
 
-```
-<legacy_repo>/scripts_sdg/1preprocess/label_scale_{country}.ipynb
-<legacy_repo>/scripts_sdg/1preprocess_country_raw/{country}.ipynb
-```
+## Reproducibility entry point
 
-These were not migrated because their value is documentary (showing
-which census columns map to which SDG indicators) rather than functional,
-and porting 13 large, divergent notebooks into homogeneous .py would
-either be near-mechanical (and thus low-value) or would risk altering the
-indicator mappings in ways that diverge from the published values.
+The raw national indicator sources differ substantially across countries in
+file format, geographic identifiers, variable naming, and access conditions.
+The country-specific source-ingestion notebooks used during dataset construction
+are therefore not maintained as part of this cleaned reproducibility repository.
 
-## Spatial encoding (excluded)
+For reproduction of the reported analyses, start from the processed
+neighborhood-level files supplied in the Zenodo deposit. In particular, the
+deposited `labels.pkl` / processed indicator tables preserve the exact indicator
+values used in the study, while the maintained code in this repository covers
+standardization, representation processing, regression, sampling analyses, and
+figure reproduction.
 
-`scripts_sdg/3_3spatial/spatial.ipynb` builds an SVD-reduced adjacency-
-matrix embedding and writes it to `Unit/.../Spatial/{queen,rook}.pkl`.
-This output is **not consumed** by any current pipeline stage
-(regression takes spatial information from the `geo.pkl` centroids;
-spatial-contrastive pretraining samples pairs at the GEOID level).
-Treated as deprecated and excluded from the release.
+This separation is intentional: reimplementing heterogeneous national-source
+ingestion is not required to reproduce the reported downstream results and
+could introduce differences in indicator definitions or source-version handling.
+Researchers who wish to rebuild indicators from the original national sources
+should follow the source descriptions and variable definitions given in the
+manuscript and Supplementary Information, then produce files matching the schema
+documented in `docs/data_schema.md`.
+
+## Notes on imagery manifests
+
+Street-view and satellite imagery use separate manifests (`paths.pkl` and
+`rs_paths.pkl`, respectively). Feature extraction and neighborhood aggregation
+must use the same modality-specific manifest. Raw Google imagery is not
+redistributed; the downstream reproducibility workflow uses the deposited
+derived representations instead.
