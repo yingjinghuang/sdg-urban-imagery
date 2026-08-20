@@ -36,9 +36,20 @@ renderers for the corresponding panels.
 | Manuscript panel | Repository notebook | Data preparation |
 |---|---|---|
 | 3a — SV / RS / fused representation | `fig2/panel_a_modal.ipynb` | `_data_prep/prep_fig2a_modal.ipynb` |
-| 3b–c — CLIP concept probing | `fig2/panel_bc_clip.ipynb` | deposited `clip_concept_sv.csv` / `clip_concept_rs.csv` for figure-only reproduction |
+| 3b–c — CLIP concept probing | `fig2/panel_bc_clip.ipynb` | deposited `clip_concept_sv.csv` / `clip_concept_rs.csv`; raw-score recomputation via `_data_prep/prep_fig2bc_clip_concept.py` |
 | 3d–e — t-SNE analysis | `fig2/panel_de_tsne.ipynb` | deposited/prepared representation tables |
 | 3f–g — spatial vs non-spatial reconstruction and Moran's I | `fig2/panel_f_spatial_curve.ipynb` | maintained `_data_prep/prep_fig2g_moransi.py` |
+
+For Fig. 3b–c the final manuscript displays four concepts per modality:
+
+- satellite: concrete, rooftop, vegetation, soil;
+- street view: building, window, road, tree.
+
+The Supplementary Information reports that CLIP scores were computed for all
+four satellite concepts and for 14 street-view concepts (seven concrete nouns
+and seven scene-character adjectives). The maintained raw-score pipeline keeps
+that full scoring set, while the plotting notebook selects the four concepts
+shown in the final main figure.
 
 Despite its filename, `panel_f_spatial_curve.ipynb` contains both current
 panels 3f and 3g. The older `_data_prep/prep_fig2g_moransi.ipynb` is retained
