@@ -1,6 +1,6 @@
 # Data schema
 
-Schema reference for every derived artifact in the public Zenodo deposit. Use this alongside `src/README.md` (which describes how each artifact is produced).
+Schema reference for the derived artifacts in the Zenodo deposit. Use this alongside `src/README.md` (which describes how each artifact is produced).
 
 ## `labels/{Country}.csv` — sustainability indicators
 
@@ -22,14 +22,14 @@ Schema reference for every derived artifact in the public Zenodo deposit. Use th
 
 ## `features/Raw/{Country}/{City}/{SV,RS}/Mocov3VITB-{variant}-{Country}-{City}-ep{N}.h5` — per-image features
 
-HDF5 with one key `data`. Two columns: `index` (image path) and 768 unnamed feature columns (ViT-B/16 final-layer mean-pooled embedding). Shape: `(N_images, 769)`.
+HDF5 containing an `index` column (image path) and 768 feature columns from the ViT-B encoder.
 
 | `variant` | Pretraining objective |
 |---|---|
-| `self` | Self-contrastive (MoCo-v3 baseline) |
-| `spatial` | Spatial-contrastive (this paper's variant) |
+| `self` | Self-contrastive (MoCo-v3) |
+| `spatial` | Spatial-contrastive |
 
-Per-modality file sizes range from ~150 MB (small city) to ~4 GB (France-All SV).
+Per-modality file sizes vary substantially with city/image count.
 
 ## `features/Unit/{Country}/{City}/{SV,RS}/Mocov3VITB-{variant}-{Country}-{City}-ep{N}.pkl` — neighborhood features
 
@@ -43,7 +43,7 @@ Pickled `pandas.DataFrame`. Columns:
 
 ## `features/Unit/{Country}/{City}/{SV,RS}/ImageNet.pkl`
 
-Same schema as above but produced from an ImageNet-pretrained ViT-B (no contrastive finetuning). Used as the Fig 1a baseline.
+Pickled `pandas.DataFrame` produced from the manuscript's ImageNet baseline: a torchvision ResNet-50 pretrained on ImageNet-1K with the classification head removed. Each neighborhood contains the mean of the 2,048-dimensional global-average-pooling features over its constituent images. Used for the ImageNet comparison in current manuscript Fig. 2a.
 
 ## `features/Unit/{Country}/{City}/SV/segmentation.pkl`
 
@@ -54,14 +54,14 @@ Pickled `DataFrame`. 150-dim per neighborhood, where each dimension is the mean 
 Concatenated features across modalities (SV ⊕ RS). Variants:
 
 | Variant | Composition | Dim |
-|---|---|---|
+|---|---|---:|
 | `Concat_self` | self-SV ⊕ self-RS | 1536 |
 | `Concat_spatial` | spatial-SV ⊕ spatial-RS | 1536 |
 | `Concat_spatial_self` | (spatial+self)-SV ⊕ (spatial+self)-RS | 3072 |
-| `Concat_ImageNet` | ImageNet-SV ⊕ ImageNet-RS | 1536 |
-| `Concat_spatial_self_pca99` | `Concat_spatial_self` with PCA to 99% variance | ~500 |
+| `Concat_ImageNet` | ResNet50(ImageNet)-SV ⊕ ResNet50(ImageNet)-RS | 4096 |
+| `Concat_spatial_self_pca99` | `Concat_spatial_self` with PCA to 99% variance | data-dependent |
 
-`Concat_spatial_self` is the main framework feature consumed by `scripts/run_fold.sh` and downstream sampling experiments.
+`Concat_spatial_self` is the main framework feature consumed by `scripts/run_fold.sh`. The feature-guided sampling launcher uses the representation specified in `scripts/run_sampling.sh`.
 
 ## `regression_outputs/{Fold,Ratio,Sampling}/.../results.csv`
 
@@ -70,14 +70,14 @@ Per-target regression metrics:
 | Column | Type | Description |
 |---|---|---|
 | `target` | str | SDG indicator code |
-| `r2` | float | Test R² (mean across folds for Fold runs) |
+| `r2` | float | Held-out-neighborhood R² for that split/fold |
 | `mae` | float | Mean absolute error |
 | `mse` | float | Mean squared error |
-| `n_train`, `n_test` | int | Sample sizes |
+| `all_r2` | float | Citywide reconstruction R² when observed/train neighborhoods retain their ground-truth values and held-out neighborhoods use model estimates |
 
 ## `regression_outputs/.../results.h5`
 
-Per-neighborhood predictions, used for residual analysis and spatial-error mapping. Keys `F0`–`F4` for the 5 folds; each is a DataFrame with `GEOID`, `set` (train/test), and `pred_<target>` / `<target>` columns.
+Per-neighborhood predictions, used for residual analysis and spatial-error mapping. Each split is stored under its split key and contains the original targets, the train/test membership, and `pred_<target>` columns.
 
 ## City naming
 
