@@ -1,14 +1,34 @@
-# `src/` — pipeline stages
+# `src/` — maintained pipeline stages
 
-The pipeline runs end-to-end in this order:
+The reproducibility route for the paper starts from the deposited processed
+neighborhood data and pretrained checkpoints. Country-specific ingestion from
+raw national statistical sources is not maintained as a single portable
+pipeline because the source formats, identifiers, and access conditions differ
+substantially by country; see `preprocess/README.md` and the Supplementary
+Information for that boundary.
 
-| # | Stage | What it does | Inputs | Outputs |
-|---|---|---|---|---|
-| 1 | `preprocess/` | Build per-country label tables; join street-view image paths to neighborhood IDs; compute mean/std for normalization. | Raw country-specific indicator tables; neighborhood shapefiles. | `processed/{Country}/{City}/labels.pkl`, `paths.pkl`, `labels_norm.pkl`. |
-| 2 | `datasets/` | Construct spatial-contrastive training pairs (same-neighborhood pairs for the spatial-contrastive objective). | `processed/.../paths.pkl`. | `datasets/train/{spatial,self}_{Country}_{City}.pkl`. |
-| 3 | `extract/` | Per-image feature extraction with a pretrained Mocov3 backbone (street-view ViT-B and satellite ViT-B), then mean-aggregation to the neighborhood level. | Raw imagery, pretrained checkpoints. | `features/Raw/{Country}/{City}/{SV,RS}/*.h5`, `features/Unit/{Country}/{City}/{SV,RS}/*.pkl`. |
-| 4 | `fuse/` | Concatenate features across the two modalities (SV ⊕ RS) and across two learning objectives (self ⊕ spatial). Optional PCA-99% reduction. | Unit-level features. | `features/Unit/{Country}/{City}/Fuse/Concat_*.pkl`. |
-| 5 | `regression/` | Token regression mapping fused features to SDG indicators. Three experimental settings: K-fold cross-validation, train-ratio sweep, and feature-guided sampling. | Fused features, labels. | `regression_outputs/{Fold,Ratio,Sampling}/...` — CSV (R²/MAE/MSE), HDF5 (per-neighborhood predictions), and trained regression-head checkpoints. |
-| - | `analysis/` | Off-pipeline post-hoc analyses: CLIP-concept interpretability scoring, residual decomposition, t-SNE export. Used to produce panels b–e of Figure 2. | Raw and Unit features. | `data/processed/sv_clip_scores.pkl`, `clip_concept_*.csv`. |
+The maintained code is organized as follows:
 
-Bash launchers in `../scripts/` wrap each stage to iterate over the 20 regions listed in `../configs/cities.yaml`.
+| Stage | What it does | Main inputs | Main outputs |
+|---|---|---|---|
+| `preprocess/` | Portable preprocessing helpers, including indicator scaling and satellite tiling utilities. | Deposited/locally prepared neighborhood tables matching `docs/data_schema.md`. | Normalized labels and helper tables used downstream. |
+| `datasets/` | Construct self/spatial contrastive-training manifests and image pairs, including same-neighborhood street-view positives and adjacent satellite positives. | Modality-specific image manifests plus neighborhood membership. | Pretraining pair/manifests consumed by `pretrain/moco_{sv,rs}.py`. |
+| `extract/` | Extract per-image ViT-B features from pretrained checkpoints and mean-aggregate them to neighborhoods. | Raw imagery, modality-specific manifests, pretrained checkpoints. | `features/Raw/.../*.h5` and `features/Unit/.../*.pkl`. |
+| `fuse/` | Combine street-view/satellite and self/spatial feature branches. | Neighborhood-level feature tables. | `features/Unit/{Country}/{City}/Fuse/Concat_*.pkl`. |
+| `regression/` | Train the location-aware token regressor for five-fold, random partial-survey, and feature-guided partial-survey experiments. | Four visual branches, labels, split definitions, geographic coordinates. | Canonical `fold/main`, `ratio/main`, and `sampling/main` result hierarchies under `regression_out_dir`. |
+| `analysis/` | Post-hoc representation analyses such as CLIP concept scoring and residual analysis. | Raw imagery/features or deposited prepared analysis tables. | Inputs supporting current manuscript Fig. 3b–e and related analyses. |
+
+The main regression representation is `Concat_spatial_self.pkl`: four separate
+768-dimensional visual branches (SV-spatial, RS-spatial, SV-self, RS-self).
+The feature-guided sampling selector starts from the same four unreduced
+branches, applies standardization/PCA separately by branch, and then combines
+them with weighted geographic coordinates before k-center selection.
+
+Bash launchers under `../scripts/` wrap the maintained stages and read paths
+from `../configs/paths.yaml`. The 20 configured country/region bundles in
+`../configs/cities.yaml` collectively represent the 93 cities reported in the
+manuscript; France and Portugal are stored as country-level bundles and resolved
+by the `city` field in their neighborhood tables.
+
+For exact file schemas see `../docs/data_schema.md`; for panel-by-panel
+reproduction commands see `../docs/reproduce_main_figures.md`.
