@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Single-modal (SV-only, RS-only) fold regression — Fig 2a modal comparison.
-# Uses the SV-or-RS-level Concat_self_spatial.pkl features (NOT the Fuse-level).
+# Single-modal (SV-only, RS-only) fold regression — manuscript Fig. 3a.
+# Uses the SV-or-RS-level Concat_self_spatial.pkl features (NOT the Fuse-level)
+# and the regression configuration reported in Supplementary Table 9.
 #
 # Output:
 #   ${REGRESSION_OUT_DIR}/fold/main/{Country}/{City}/{SV|RS}/Token_Concat_self_spatial/...
@@ -29,6 +30,15 @@ for TYPE in SV RS; do
             --geo_path     "${PROCESSED_DIR}/${COUNTRY}/${CITY}/geo.pkl" \
             --targets      "${TARGETS}" \
             --output_dir   "${OUTPUT_DIR}" \
+            --hidden_dim 256 \
+            --num_heads 8 \
+            --num_layers 1 \
+            --lr 1e-4 \
+            --batch_size 128 \
+            --num_epochs 100 \
+            --warmup_epochs 10 \
+            --patience 5 \
+            --weight_decay 1e-4 \
             --mode         "${TYPE}" \
             --device 0
     done
