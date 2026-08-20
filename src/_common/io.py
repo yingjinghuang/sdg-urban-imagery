@@ -18,6 +18,11 @@ import pandas as pd
 def read_feature_table(path: str | Path, *, h5_key: str = "data") -> pd.DataFrame:
     """Load a feature table from .pkl, .h5, or .csv.
 
+    Current per-image extraction writes one appendable HDF5 table under the
+    canonical key ``data``. For backward compatibility, this reader also
+    understands legacy files that were streamed into ``part_0``, ``part_1``,
+    ... keys and concatenates those parts in numeric order.
+
     For CSV files, attempt to coerce column labels to int (feature
     dimensions are stored as integer column names in this pipeline);
     fall back to leaving uncoerceable labels as-is.
@@ -26,7 +31,38 @@ def read_feature_table(path: str | Path, *, h5_key: str = "data") -> pd.DataFram
     if path.endswith(".pkl"):
         return pd.read_pickle(path)
     if path.endswith(".h5"):
-        return pd.read_hdf(path, key=h5_key)
+        try:
+            return pd.read_hdf(path, key=h5_key)
+        except (KeyError, ValueError):
+            if h5_key != "data":
+                raise
+
+            # Legacy extraction wrote each flush under a separate part_N key.
+            # Keep support for those existing artifacts so users do not need to
+            # regenerate large per-image feature files merely because the HDF5
+            # layout was normalized later.
+            with pd.HDFStore(path, mode="r") as store:
+                keys = [key.lstrip("/") for key in store.keys()]
+                part_keys = [key for key in keys if key.startswith("part_")]
+                if part_keys:
+                    try:
+                        part_keys = sorted(
+                            part_keys,
+                            key=lambda key: int(key.split("_", 1)[1]),
+                        )
+                    except ValueError:
+                        part_keys = sorted(part_keys)
+                    frames = [store.get(key) for key in part_keys]
+                    return pd.concat(frames, ignore_index=True)
+
+                if len(keys) == 1:
+                    # Be tolerant of a single non-standard key in older local
+                    # artifacts while keeping ``data`` as the documented key.
+                    return store.get(keys[0])
+
+            raise KeyError(
+                f"HDF5 feature file {path} has no '{h5_key}' table and no legacy part_* tables."
+            )
     if path.endswith(".csv"):
         df = pd.read_csv(path)
         df.columns = [_maybe_int(c) for c in df.columns]
