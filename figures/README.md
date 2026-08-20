@@ -1,83 +1,115 @@
 # `figures/` — figure regeneration
 
-Each analysis panel has its own notebook so panels can be re-run independently. Heavyweight data preparation lives in `_data_prep/` and writes intermediate CSV/HDF5 tables that the panel notebooks then load.
+The repository keeps the original panel-oriented organization, while the
+maintained reproduction route is documented in
+`docs/reproduce_main_figures.md`.
 
-> **Numbering note.** The repository retains the legacy folder names `fig1/` and `fig2/` for notebook compatibility. In the current manuscript, these correspond to **Fig. 2 (model performance)** and **Fig. 3 (mechanisms / representation analyses)**, respectively. Current manuscript Fig. 1 is the conceptual overview.
+> **Numbering note.** The folders `fig1/` and `fig2/` predate the current
+> manuscript numbering. They correspond to current **Fig. 2** and **Fig. 3**,
+> respectively. Current manuscript Fig. 1 is the conceptual overview.
 
 ## Layout
 
-```
+```text
 figures/
-├── _data_prep/        Data-prep notebooks (read regression outputs, write per-figure CSVs)
-├── fig1/              Legacy folder -> current manuscript Fig. 2
-├── fig2/              Legacy folder -> current manuscript Fig. 3
-├── extended/          Extended Data Figures
-└── supplementary/     Per-city supplementary figures (batch-generated)
+├── _data_prep/        Main-figure data preparation
+├── fig1/              Current manuscript Fig. 2
+├── fig2/              Current manuscript Fig. 3
+├── extended/          Extended Data figures and sensitivity analyses
+└── supplementary/     Maintained per-region Supplementary figures
 ```
 
-## Current manuscript Figure 2 (`figures/fig1/`) — model performance
+## Current manuscript Figure 2 — model performance and sampling
 
-| Manuscript panel | Repository notebook | Data prep |
+| Manuscript panel | Repository notebook | Data preparation |
 |---|---|---|
-| 2a — R² comparison (Ours / ImageNet / Segmentation) across 11 SDGs | `fig1/panel_a_r2_compare.ipynb` | `_data_prep/prep_fig1a_r2_{ours,imagenet,segmentation}.ipynb` |
-| 2b — Scaling curves by SDG category | `fig1/panel_b_sdg_scaling.ipynb` | (inline) |
-| 2c — Scaling curves by city | `fig1/panel_c_city_scaling.ipynb` | `_data_prep/prep_fig1c_spearman.ipynb` |
-| 2d — Feature-guided vs random sampling | `fig1/panel_d_sampling_compare.ipynb` (canonical) + `fig1/panel_d_dumbbell.py` (alt rendering) | (inline) |
+| 2a — R² comparison across SDGs | `fig1/panel_a_r2_compare.ipynb` | `_data_prep/prep_fig1a_r2_{ours,imagenet,segmentation}.ipynb` |
+| 2b — scaling curves by SDG | `fig1/panel_b_sdg_scaling.ipynb` | canonical ratio/sampling outputs staged by `scripts/prepare_figure_inputs.py` |
+| 2c — scaling curves by city | `fig1/panel_c_city_scaling.ipynb` | `_data_prep/prep_fig1c_spearman.ipynb` plus staged outputs |
+| 2d — feature-guided vs random sampling | `fig1/panel_d_sampling_compare.ipynb` | canonical ratio/sampling outputs staged by `scripts/prepare_figure_inputs.py` |
 
-Also: `fig1/scaling_curves.py` is an alternative standalone renderer for the b/c panels.
+`fig1/scaling_curves.py` and `fig1/panel_d_dumbbell.py` are alternative
+renderers for the corresponding panels.
 
-## Current manuscript Figure 3 (`figures/fig2/`) — representation and spatial mechanisms
+## Current manuscript Figure 3 — representation and spatial mechanisms
 
-| Manuscript panel | Repository notebook | Data prep |
+| Manuscript panel | Repository notebook | Data preparation |
 |---|---|---|
-| 3a — Modal comparison (SV / RS / Fuse) | `fig2/panel_a_modal.ipynb` | `_data_prep/prep_fig2a_modal.ipynb` |
-| 3b–c — CLIP zero-shot concept probing | `fig2/panel_bc_clip.ipynb` | `_data_prep/prep_fig2bc_clip_concept.ipynb` |
-| 3d–e — t-SNE of self vs spatial in Los Angeles | `fig2/panel_de_tsne.ipynb` | (loads features directly) |
-| 3f — Spatial vs non-spatial R² curves | `fig2/panel_f_spatial_curve.ipynb` | (inline) |
-| 3g — Moran's I × R² at 50% sampling | (see `_data_prep/prep_fig2g_moransi.ipynb`) | `_data_prep/prep_fig2g_moransi.ipynb` produces the data + figure |
+| 3a — SV / RS / fused representation | `fig2/panel_a_modal.ipynb` | `_data_prep/prep_fig2a_modal.ipynb` |
+| 3b–c — CLIP concept probing | `fig2/panel_bc_clip.ipynb` | deposited `clip_concept_sv.csv` / `clip_concept_rs.csv` for figure-only reproduction |
+| 3d–e — t-SNE analysis | `fig2/panel_de_tsne.ipynb` | deposited/prepared representation tables |
+| 3f–g — spatial vs non-spatial reconstruction and Moran's I | `fig2/panel_f_spatial_curve.ipynb` | maintained `_data_prep/prep_fig2g_moransi.py` |
 
-## Extended Data Figures
+Despite its filename, `panel_f_spatial_curve.ipynb` contains both current
+panels 3f and 3g. The older `_data_prep/prep_fig2g_moransi.ipynb` is retained
+only as a historical analysis record; use the `.py` script above for current
+reproduction.
 
-| Figure | Notebook / script |
-|---|---|
-| Maps — global distribution | `extended/ed_maps.ipynb`, `extended/ed_world_map.ipynb` |
-| Heatmap — city × SDG R² | `extended/ed_heatmap.py` |
-| Indicator bars | `extended/ed_indicator_bars.py` |
-| Distribution | `extended/ed_distribution.ipynb` |
-| Random / feature-guided sampling — full sweeps | `extended/ed_sampling_results.ipynb`, `extended/ed_ratio_results.ipynb` |
-| Train-epoch convergence analysis | `extended/ed_train_epoch.ipynb` |
-| Sampling panels retained from early drafts | `extended/ed_sampling_panel_{a,b,c}.ipynb` |
+## Canonical regression outputs and compatibility staging
 
-## Supplementary Figures
+Current launchers write to the configured `regression_out_dir`, for example:
 
-`supplementary/batch_per_city_figures.py` regenerates the per-city fold, random-sampling, and feature-guided-sampling PDFs referenced by the Supplementary Information. It reads from `${REGRESSION_OUT_DIR}/fold/`, `ratio/`, and `sampling/`.
+```text
+fold/main/<Country>/<City>/...
+ratio/main/<Country>/<City>/...
+sampling/main/<Country>/<City>/...
+sampling/main_no_geo/<Country>/<City>/...
+```
 
-`supplementary/per_city_fold_box.py` and `per_city_fold_results.ipynb` are auxiliary fold-level renderers.
-
-## Path conventions inside the notebooks
-
-All notebooks have been path-rewritten to read from `../../data/...` relative to the notebook location (i.e. `data/` under the repository root). Set up the data root once by symlinking your `${data_root}` (from `configs/paths.yaml`) into the repo:
+Some original main-figure notebooks still expect their historical compact
+`data/regression_outputs/regmodels_*` layout. Create those small compatibility
+CSVs from the canonical results with:
 
 ```bash
-ln -s "${data_root}" data
+python scripts/prepare_figure_inputs.py --strict
 ```
 
-The notebooks then read from:
+This step does not retrain models or alter metrics.
 
-| Logical | Path in notebooks |
-|---|---|
-| Pre-computed regression results (legacy server: `regmodels_*`) | `data/regression_outputs/regmodels_<variant>/...` |
-| Newer regression results (legacy server: `models_new/`) | `data/regression_outputs_new/...` |
-| Unit/Raw features | `data/features/{Unit,Raw}/...` |
-| Processed label/path tables | `data/processed/...` |
-| Pre-rendered figure assets (flags, fonts) | `data/figure_assets/...`, `data/assets/flags/...` |
-| Raw street-view imagery (third-party, not redistributed) | `data/raw/GoogleSV/...` |
-| Raw satellite imagery (third-party, not redistributed) | `data/raw/GoogleSatellite/...` |
+## Supplementary figures
 
-The raw satellite imagery used in the paper was obtained through the Google Static Maps API at approximately 0.6 m spatial resolution; it is not Sentinel-2 imagery. Raw third-party imagery is not included in the reproducibility deposit.
+The maintained per-region Supplementary entry point is:
 
-If you prefer a different layout, set up symlinks for those specific subpaths instead. Notebook outputs save under `../../data/figure_assets/` unless you change the `plt.savefig(...)` lines.
+```bash
+python figures/supplementary/batch_per_city_figures.py --strict
+```
 
-The `.py` renderers (`ed_heatmap.py`, `ed_indicator_bars.py`, `panel_d_dumbbell.py`, `scaling_curves.py`, and the supplementary scripts) follow the same convention.
+It reads directly from the canonical `fold/main`, `ratio/main`, and
+`sampling/main` hierarchies and writes per-region PDFs under
+`data/figure_assets/` by default. The previous duplicate fold-only script and
+notebook were removed so there is one maintained route.
 
-All notebook outputs have been stripped; re-running the notebooks generates fresh outputs and keeps the git history clean.
+## Extended Data figures
+
+The maintained full random/feature-guided sampling sweeps are generated by:
+
+```bash
+python figures/extended/sampling_curves.py --strict
+```
+
+This script reads the canonical ratio/sampling outputs and replaces the older
+workspace-specific random/strategic sampling notebooks.
+
+Several Extended Data notebooks are intentionally retained as **archival
+sensitivity analyses** because they depend on experiments that are not
+semantically equivalent to the final canonical runs (for example historical
+top-k k-center variants or regressions at many intermediate pretraining
+epochs). See `figures/extended/README.md` for the maintained/archival split. We
+do not mechanically redirect those notebooks to final-model outputs because
+that would change the experiment being shown.
+
+## Data and typography
+
+Most plotting notebooks use paths relative to `<repo>/data/`. `data/` can be a
+local directory or symlink to the unpacked derived-data bundle; it is ignored
+by Git. Canonical training/output roots themselves are configured in
+`configs/paths.yaml`.
+
+Some historical notebooks reference `data/Arial.ttf` to match manuscript
+typography. The font file is not distributed. A locally available sans-serif
+font can be used instead without changing numerical results.
+
+Raw street-view and satellite imagery are third-party inputs and are not
+redistributed. Main downstream reproduction uses the deposited processed
+neighborhood-level data and pretrained checkpoints rather than reacquiring the
+original imagery.
