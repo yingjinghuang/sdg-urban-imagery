@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Fold regression with the ImageNet baseline — Fig 1a blue bar.
+# Fold regression with the ImageNet baseline — manuscript Fig. 2a blue line.
+# Uses the same downstream regression configuration as the proposed model,
+# matching Supplementary Table 9.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,6 +25,15 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --geo_path     "${PROCESSED_DIR}/${COUNTRY}/${CITY}/geo.pkl" \
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
+        --hidden_dim 256 \
+        --num_heads 8 \
+        --num_layers 1 \
+        --lr 1e-4 \
+        --batch_size 128 \
+        --num_epochs 100 \
+        --warmup_epochs 10 \
+        --patience 5 \
+        --weight_decay 1e-4 \
         --mode         "${TYPE}" \
         --device 0
 done
