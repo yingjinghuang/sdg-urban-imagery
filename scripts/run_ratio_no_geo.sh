@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Non-spatial baseline for the ratio experiment.
 # Same as run_ratio.sh but with the spatially-informed regression
-# disabled (no geo feature, no spatial CV blocks). Used as the
-# baseline curve in Fig 2f.
+# disabled (no geo feature). Used as a manuscript Fig. 3f baseline.
+# Regression hyperparameters are pinned to Supplementary Table 9.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,6 +25,15 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --community_path "${PROCESSED_DIR}/${COUNTRY}/${CITY}/samples/ratio.pkl" \
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
+        --hidden_dim 256 \
+        --num_heads 8 \
+        --num_layers 1 \
+        --lr 1e-4 \
+        --batch_size 128 \
+        --num_epochs 100 \
+        --warmup_epochs 10 \
+        --patience 5 \
+        --weight_decay 1e-4 \
         --mode         "${TYPE}" \
         --no_geo \
         --device 0
