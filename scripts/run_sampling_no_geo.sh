@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Non-spatial sampling baseline — Fig 2f comparison curve.
+# Non-spatial sampling baseline — manuscript Fig. 3f comparison curve.
+# Regression hyperparameters are pinned to Supplementary Table 9.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,6 +26,15 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
         --feature_len  "${FEATURE_LEN}" \
+        --hidden_dim 256 \
+        --num_heads 8 \
+        --num_layers 1 \
+        --lr 1e-4 \
+        --batch_size 128 \
+        --num_epochs 100 \
+        --warmup_epochs 10 \
+        --patience 5 \
+        --weight_decay 1e-4 \
         --no_geo \
         --device 0
 done
