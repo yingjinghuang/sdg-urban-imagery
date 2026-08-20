@@ -1,73 +1,85 @@
 # Extended Data figure workflows
 
-This directory contains both maintained reproduction scripts and analysis
-notebooks retained from the original study workspace. They are separated below
-so that a reviewer does not have to infer which historical paths are still
-expected to work.
+This directory contains a mix of maintained reproduction scripts and original
+analysis notebooks. They are classified here so a reviewer does not have to
+infer which historical workspace assumptions are still expected to work.
 
 ## Maintained workflows
 
 ### Full random and feature-guided sampling sweeps
 
-Use:
-
 ```bash
 python figures/extended/sampling_curves.py --strict
 ```
 
-This script reads the canonical regression outputs configured by
-`configs/paths.yaml`:
+Reads the canonical regression outputs configured by `configs/paths.yaml`:
 
 ```text
 ratio/main/<Country>/<City>/Fuse/Token_Concat_spatial_self/results.csv
 sampling/main/<Country>/<City>/Fuse/Multi_Concat_pcahierachy/results.csv
 ```
 
-It uses `all_r2` for the citywide partial-survey reconstruction metric and
-writes:
+The script uses `all_r2` for citywide partial-survey reconstruction and writes
+`S_random_sampling.{pdf,png}` and `S_strategic_sampling.{pdf,png}` under
+`data/figure_assets/` by default. The older workspace-specific random and
+strategic sampling notebooks were removed after this renderer replaced them.
 
-```text
-data/figure_assets/S_random_sampling.pdf
-data/figure_assets/S_strategic_sampling.pdf
+### City-by-SDG heatmap
+
+```bash
+python figures/extended/ed_heatmap.py --strict
 ```
 
-PNG copies are written alongside the PDFs. The historical
-`ed_ratio_results.ipynb` and `ed_sampling_results.ipynb` notebooks were removed
-after this maintained renderer replaced them.
+Reads canonical `fold/main/.../Token_Concat_spatial_self/results.csv` files,
+averages held-out R² across folds/indicators within city-SDG pairs, and obtains
+SDG metadata from `<processed_dir>/0labels/<Country>.csv`. Output paths are
+repository-relative/configurable; machine-specific Windows paths and required
+local fonts were removed.
 
-### Other Extended Data panels
+### Representative-city indicator bars
 
-`ed_heatmap.py`, `ed_indicator_bars.py`, `ed_distribution.ipynb`,
-`ed_maps.ipynb`, and `ed_world_map.ipynb` are retained because they operate on
-prepared/deposited tables or geographic inputs rather than defining alternative
-training configurations. Their inputs are described in the notebooks/scripts.
+```bash
+python figures/extended/ed_indicator_bars.py
+```
+
+Reads the same canonical fold outputs for Philadelphia, Melbourne, Rio de
+Janeiro, and Hong Kong, averages the five fold rows per indicator, and uses the
+country metadata tables for indicator labels/SDG groups. It no longer requires
+machine-specific font, flag, or output paths.
+
+## Original/prepared-data notebooks
+
+`ed_maps.ipynb`, `ed_world_map.ipynb`, and `ed_distribution.ipynb` are retained
+as analysis notebooks around geographic/processed inputs. They are not claimed
+here as canonical one-command scripts; their data cells document the prepared
+inputs they were developed with. Main-paper reproduction does not depend on
+rerunning them.
 
 ## Archival sensitivity analyses
 
 The following notebooks are retained as records of additional sensitivity
-analyses from the study workspace, but are **not** mapped onto the final-model
-canonical output hierarchy because doing so mechanically would change the
-experiment being plotted:
+analyses but are **not** mapped onto the final-model canonical output hierarchy,
+because doing so mechanically would change the experiment being plotted:
 
-- `ed_sampling_panel_a.ipynb` — combines the historical sampling/ratio sweeps
-  with a feature-entropy analysis based on an earlier fused representation.
+- `ed_sampling_panel_a.ipynb` — combines historical sampling/ratio sweeps with
+  a feature-entropy analysis based on an earlier fused representation.
 - `ed_sampling_panel_b.ipynb` — compares historical `top-k` k-center variants
   that are not produced by the final canonical k-center launcher.
-- `ed_sampling_panel_c.ipynb` — uses per-neighborhood historical prediction
-  HDF5 files to compare low-income-area and citywide behavior.
+- `ed_sampling_panel_c.ipynb` — uses historical per-neighborhood prediction
+  HDF5 layouts to compare low-income-area and citywide behavior.
 - `ed_train_epoch.ipynb` — compares regressions run from many intermediate
   representation-pretraining checkpoints rather than only the final reported
   checkpoints.
 
-These notebooks therefore should not be interpreted as one-command reproduction
-scripts for the final pipeline. Where their prepared inputs are included in the
-review/data package, they can still be inspected as analysis records. Replacing
-their historical inputs with current final-model outputs would answer a
-different question and is intentionally avoided.
+These notebooks should not be interpreted as one-command reproduction scripts
+for the final pipeline. Where their prepared inputs are available in the data
+package, they can still be inspected as analysis records. Replacing their
+historical inputs with current final-model outputs would answer a different
+question and is intentionally avoided.
 
 ## Typography
 
-Some historical notebooks reference `../../data/Arial.ttf` to match manuscript
+Some retained notebooks reference `../../data/Arial.ttf` to match manuscript
 typography. That font is not distributed by this repository. Numerical results
 do not depend on it; use a locally available sans-serif font if an exact local
 copy is unavailable.
