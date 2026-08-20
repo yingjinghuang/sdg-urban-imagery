@@ -13,6 +13,18 @@ The regression launchers explicitly pin the settings reported in Supplementary T
 
 The main fold, random-sampling, and feature-guided-sampling regressions all use the same four visual representation branches: street-view spatial, satellite spatial, street-view self, and satellite self. They are stored in `Concat_spatial_self.pkl` as four consecutive 768-dimensional tokens (3072 dimensions total). `FEATURE_LEN=768` denotes the width of each token.
 
+## Feature-guided sampling configuration
+
+`scripts/select_kcenter.sh` implements the sample-selection representation described in the manuscript Methods. It reads the **unreduced** `Concat_spatial_self.pkl` representation, passes the corresponding `geo.pkl`, and then `src/regression/select_kcenter.py`:
+
+1. splits the 3072-d visual representation into four 768-d branches;
+2. standardizes each branch and applies PCA separately, retaining 99% variance within that branch;
+3. standardizes neighborhood-centroid longitude/latitude;
+4. weights the geographic coordinates by `0.5 * sqrt(d_v)`, where `d_v` is the concatenated PCA-reduced visual dimensionality;
+5. runs seeded k-center greedy selection and writes nested 10%–90% survey definitions to `samples/pcahierachy.pkl`.
+
+The optional globally reduced `Concat_spatial_self_pca99.pkl` file produced by `fuse_features.sh` is retained only for legacy/auxiliary analysis. It is **not** used as input to the paper's feature-guided sampling procedure.
+
 ## End-to-end pipeline
 
 ```bash
@@ -33,7 +45,7 @@ bash scripts/extract_features_segmentation.sh    # manuscript Fig. 2a baseline
 # 3. Fuse features
 bash scripts/fuse_features.sh
 
-# 4. Pre-compute sample-selection orderings
+# 4. Pre-compute feature-guided sample-selection orderings
 bash scripts/select_kcenter.sh
 
 # 5. Regression — main results
