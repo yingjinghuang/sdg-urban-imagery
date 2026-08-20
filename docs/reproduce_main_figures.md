@@ -186,19 +186,11 @@ data/processed/fig/fig2_geo_reg_moransi_results.csv
 
 ---
 
-## Extended Data Figures
+## Extended Data and Supplementary figures
 
-See `figures/extended/`. These files are retained from the original analysis workspace and are not all yet normalized to the cleaned canonical output layout. For the main-paper reproducibility check, use the maintained commands above. Extended Data notebook cleanup is tracked separately from the main-figure reproduction path.
+The `figures/extended/` notebooks and the original `figures/supplementary/batch_per_city_figures.py` are retained from the analysis workspace, but they still contain legacy path/schema assumptions and are **not part of the maintained main-figure reproduction route described above**. Do not treat them as canonical one-command reproduction scripts yet.
 
-## Supplementary per-city figures
-
-The maintained batch generator is:
-
-```bash
-python figures/supplementary/batch_per_city_figures.py --config configs/paths.yaml
-```
-
-It produces the per-city fold, random-sampling, and feature-guided-sampling figures from the configured regression outputs.
+The deposited Extended Data/Supplementary figure inputs and outputs remain available for review. A separate cleanup can normalize those scripts to the canonical `fold/ratio/sampling` output hierarchy without changing the main-paper reproduction path.
 
 ## Compute scope
 
