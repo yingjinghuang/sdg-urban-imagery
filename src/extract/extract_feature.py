@@ -1,11 +1,13 @@
-"""Per-image feature extraction with a pretrained ViT-B backbone.
+"""Per-image feature extraction for the learned ViT-B encoders and ImageNet baseline.
 
-Loads a Mocov3 / ImageNet ViT-B checkpoint, runs every image listed in a
-manifest pickle (``[{"path": "..."}, ...]``) through the encoder, and
-writes the 768-dim features to an HDF5 file in chunks.
+For the proposed representation, this module loads a MoCo-v3 ViT-B checkpoint
+and writes 768-dimensional image embeddings. For the ImageNet baseline reported
+in the manuscript and Supplementary Information, it loads a torchvision
+ResNet-50 pretrained on ImageNet-1K, removes the classification head, and writes
+the 2,048-dimensional global-average-pooling features.
 
 Multi-GPU via ``torch.nn.DataParallel`` if available. Mixed precision via
-``autocast``. Restarts from completed chunks if the output already exists.
+``autocast``. Outputs are stored in HDF5 chunks.
 
 Usage:
     python -m src.extract.extract_feature \
@@ -13,9 +15,8 @@ Usage:
         --data_path ${PROCESSED_DIR}/Australia/Adelaide/paths.pkl \
         --save_path ${FEATURES_RAW_DIR}/Australia/Adelaide/SV/Mocov3VITB-spatial-Australia-Adelaide-ep99.h5
 
-If ``--pretrained_model_path imagenet`` is given, the script loads a
-torchvision ImageNet-pretrained ViT-B (no contrastive finetuning). This
-provides the Fig 1a ImageNet baseline features.
+If ``--pretrained_model_path imagenet`` is given, the script loads the
+ImageNet-1K-pretrained ResNet-50 baseline described in the paper.
 """
 
 from __future__ import annotations
@@ -77,8 +78,8 @@ def load_image_list(manifest_path: str) -> list[str]:
 
 
 def load_mocov3_vit_b(checkpoint_path: str) -> nn.Module:
-    """Load a Mocov3 ViT-B checkpoint into a vit_base model."""
-    print(f"[extract] loading Mocov3 ViT-B from {checkpoint_path}")
+    """Load a MoCo-v3 ViT-B checkpoint into a vit_base model."""
+    print(f"[extract] loading MoCo-v3 ViT-B from {checkpoint_path}")
     model = vit_base()
     ckpt = torch.load(checkpoint_path, map_location="cpu")
     state_dict = ckpt["state_dict"]
@@ -97,23 +98,24 @@ def load_mocov3_vit_b(checkpoint_path: str) -> nn.Module:
     return model
 
 
-def load_imagenet_vit_b() -> nn.Module:
-    """Load a torchvision ImageNet-pretrained ViT-B (baseline for Fig 1a)."""
+def load_imagenet_resnet50() -> nn.Module:
+    """Load the ImageNet-1K-pretrained ResNet-50 baseline reported in the paper."""
     import torchvision.models as tvm
 
-    print("[extract] loading ImageNet ViT-B/16")
-    model = tvm.vit_b_16(weights=tvm.ViT_B_16_Weights.IMAGENET1K_V1)
-    # Strip the classification head to return penultimate features (768-d).
-    model.heads = nn.Identity()
+    print("[extract] loading ImageNet-1K ResNet-50")
+    model = tvm.resnet50(weights=tvm.ResNet50_Weights.IMAGENET1K_V1)
+    # Removing the classifier exposes the 2,048-d global-average-pooling vector.
+    model.fc = nn.Identity()
     return model
 
 
-def build_model(pretrained_model_path: str) -> nn.Module:
+def build_model(pretrained_model_path: str) -> tuple[nn.Module, int]:
+    """Return the feature extractor and its output dimensionality."""
     if pretrained_model_path.lower() == "imagenet":
-        return load_imagenet_vit_b()
+        return load_imagenet_resnet50(), 2048
     if not os.path.exists(pretrained_model_path):
         raise FileNotFoundError(f"Checkpoint not found: {pretrained_model_path}")
-    return load_mocov3_vit_b(pretrained_model_path)
+    return load_mocov3_vit_b(pretrained_model_path), 768
 
 
 # --- Extraction loop --------------------------------------------------------
@@ -138,6 +140,8 @@ def extract_features(
         model = nn.DataParallel(model, device_ids=list(range(n_gpus)))
     model = model.to(device).eval()
 
+    # Matches the preprocessing described for the ImageNet baseline and is
+    # also the normalization used by the ViT extraction pipeline.
     transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(224),
@@ -164,7 +168,11 @@ def extract_features(
             images = images[keep].to(device, non_blocking=True)
             with autocast():
                 feats = model(images).float().cpu().numpy()
-            chunk = pd.DataFrame(feats.reshape(len(keep), feature_dim))
+            if feats.ndim != 2 or feats.shape[1] != feature_dim:
+                raise ValueError(
+                    f"Feature extractor returned shape {feats.shape}; expected (*, {feature_dim})."
+                )
+            chunk = pd.DataFrame(feats)
             chunk["index"] = [indices[i] for i in keep]
             buffer = pd.concat([buffer, chunk], ignore_index=True) if not buffer.empty else chunk
             if buffer.shape[0] >= save_every:
@@ -186,7 +194,7 @@ def _flush(buffer: pd.DataFrame, save_path: str, part: int) -> tuple[pd.DataFram
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--pretrained_model_path", required=True,
-                   help='Path to a Mocov3 checkpoint, or the literal "imagenet".')
+                   help='Path to a MoCo-v3 checkpoint, or the literal "imagenet" for ResNet-50.')
     p.add_argument("--data_path", required=True, help="Image-manifest pickle.")
     p.add_argument("--save_path", required=True, help="Output HDF5 path.")
     p.add_argument("--batch_size", type=int, default=1024)
@@ -201,7 +209,7 @@ def main() -> None:
     if not paths:
         print(f"[extract] no images for {args.data_path}; nothing to do")
         return
-    model = build_model(args.pretrained_model_path)
+    model, feature_dim = build_model(args.pretrained_model_path)
     extract_features(
         model,
         paths,
@@ -209,6 +217,7 @@ def main() -> None:
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         save_every=args.save_every,
+        feature_dim=feature_dim,
     )
 
 
