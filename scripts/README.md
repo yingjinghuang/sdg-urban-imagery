@@ -11,6 +11,8 @@ Pipeline entry points. Each script sources `_lib.sh`, which reads `configs/paths
 
 The regression launchers explicitly pin the settings reported in Supplementary Table 9: hidden dimension 256, 8 attention heads, 1 Transformer layer, batch size 128, maximum 100 epochs, 10-epoch warmup, early-stopping patience 5, learning rate `1e-4`, and weight decay `1e-4`. The model uses dropout 0.5 before the prediction head and an early-stopping delta of 0.005.
 
+The main fold, random-sampling, and feature-guided-sampling regressions all use the same four visual representation branches: street-view spatial, satellite spatial, street-view self, and satellite self. They are stored in `Concat_spatial_self.pkl` as four consecutive 768-dimensional tokens (3072 dimensions total). `FEATURE_LEN=768` denotes the width of each token.
+
 ## End-to-end pipeline
 
 ```bash
@@ -69,4 +71,4 @@ ${REGRESSION_OUT_DIR}/{fold|ratio|sampling}/{run_tag}/{Country}/{City}/{TYPE}/{T
 | `CUDA_DEVICES` | (from paths.yaml) | GPU IDs. |
 | `BATCH_SIZE_PER_GPU` | 2048 | Per-GPU batch for feature extraction. |
 | `TYPE` | `Fuse` (regression) / per-script (extraction) | Modality target. |
-| `FEATURE_LEN` | 1536 | Feature dimensionality for the sampling launcher input. |
+| `FEATURE_LEN` | 768 | Width of each visual token for sampling regression; `Concat_spatial_self` contains four such tokens. |
