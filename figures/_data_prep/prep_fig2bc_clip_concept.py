@@ -20,7 +20,12 @@ tables remain the authoritative inputs for exact figure-only reproduction.
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import numpy as np
 import pandas as pd
@@ -32,7 +37,6 @@ from src._common.io import feature_columns, read_feature_table
 from src._common.paths import remap_image_paths
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_ROOT = REPO_ROOT / "data"
 
 DISPLAY_CONCEPTS = {
