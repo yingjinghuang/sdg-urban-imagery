@@ -3,20 +3,21 @@
 # self-contrastive or spatial-contrastive objective.
 #
 # Usage:
-#   bash scripts/pretrain_rs.sh self    <tag>
-#   bash scripts/pretrain_rs.sh spatial <tag>
+#   bash scripts/pretrain_rs.sh self    <tag> [resume_ckpt]
+#   bash scripts/pretrain_rs.sh spatial <tag> [resume_ckpt]
 #
 # Manuscript pretraining settings:
-#   architecture: ViT-B
-#   optimizer:    AdamW
-#   batch size:   1024
-#   base LR:      1e-5
-#   weight decay: 1e-6
-#   epochs:       50 for satellite imagery
+#   architecture:         ViT-B
+#   optimizer:            AdamW
+#   total batch size:     1024
+#   initial optimizer LR: 1e-5
+#   weight decay:         1e-6
+#   epochs:               50 for satellite imagery
 #
-# The MoCo-v3 training code uses its standard 10-epoch warm-up. The manuscript
-# does not report a separate warm-up value, so we keep the implementation
-# default explicitly here rather than the old stock-launcher value of 40.
+# The MoCo-v3 training code uses a 10-epoch warm-up. The manuscript does not
+# report a separate warm-up value, so the implementation default is retained
+# explicitly here. The --lr value is used directly by the optimizer and is not
+# rescaled by batch_size/256 in the cleaned pretraining entry point.
 
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -42,9 +43,9 @@ fi
 
 mkdir -p "${SAVE_DIR}"
 
-RESUME_ARG=""
+RESUME_ARG=()
 if [ -n "${RESUME_CKPT}" ]; then
-    RESUME_ARG="--pretrained ${RESUME_CKPT}"
+    RESUME_ARG=(--resume "${RESUME_CKPT}")
 fi
 
 CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/pretrain/moco_rs.py" \
@@ -55,5 +56,5 @@ CUDA_VISIBLE_DEVICES="${CUDA_DEVICES}" "${PYTHON}" "${REPO_ROOT}/pretrain/moco_r
     --stop-grad-conv1 --moco-m-cos --moco-t=.2 \
     --dist-url "tcp://localhost:${PORT}" \
     --multiprocessing-distributed --world-size 1 --rank 0 \
-    ${RESUME_ARG} \
+    "${RESUME_ARG[@]}" \
     "${DATASET_PATH}"
