@@ -2,7 +2,8 @@
 # Variable train-ratio regression on the main framework feature.
 # Sweeps the training-set ratio from low to high to characterize how
 # much ground-truth survey data is needed for reliable estimation.
-# Feeds Fig 1b (SDG scaling), Fig 1c (city scaling), and Fig 1d (random baseline).
+# Feeds manuscript Fig. 2b/c/d (random-sampling curves/baseline).
+# Regression hyperparameters are pinned to Supplementary Table 9.
 #
 # Output:
 #   ${REGRESSION_OUT_DIR}/ratio/main/{Country}/{City}/Fuse/Token_Concat_spatial_self/
@@ -29,6 +30,15 @@ list_regions | while read -r COUNTRY CITY _ _; do
         --geo_path     "${PROCESSED_DIR}/${COUNTRY}/${CITY}/geo.pkl" \
         --targets      "${TARGETS}" \
         --output_dir   "${OUTPUT_DIR}" \
+        --hidden_dim 256 \
+        --num_heads 8 \
+        --num_layers 1 \
+        --lr 1e-4 \
+        --batch_size 128 \
+        --num_epochs 100 \
+        --warmup_epochs 10 \
+        --patience 5 \
+        --weight_decay 1e-4 \
         --mode         "${TYPE}" \
         --device 0
 done
