@@ -11,9 +11,12 @@ license — see the top-level `LICENSE` file.
 |---|---|
 | `moco/builder.py`, `moco/loader.py`, `moco/optimizer.py`, `moco/__init__.py` | Unmodified copy of the upstream `moco/` package. |
 | `vits.py` | Unmodified copy of the upstream `vits.py`. |
-| `datasets.py` | Custom pair-dataset utility used by spatial-contrastive sample preparation. |
 | `moco_sv.py` | Modified multi-GPU street-view entry point with the study-specific dataset loaders, checkpoint handling, and paper-reproduction learning-rate semantics. |
 | `moco_rs.py` | Satellite counterpart using the channel normalization and image loaders used by the study. |
+
+The study-specific self/spatial dataset loaders used during pretraining are
+implemented directly in `moco_sv.py` and `moco_rs.py`. Spatial-pair dataset
+construction is maintained separately under `src/datasets/`.
 
 The cleaned release entry points intentionally contain no external
 experiment-tracking service integration or embedded service credentials.
