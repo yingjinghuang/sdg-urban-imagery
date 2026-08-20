@@ -2,8 +2,8 @@
 
 This directory contains contrastive-pretraining code derived from
 [facebookresearch/moco-v3](https://github.com/facebookresearch/moco-v3),
-originally licensed under Apache-2.0. This release repository inherits
-that license — see the top-level `LICENSE` file.
+originally licensed under Apache-2.0. This release repository inherits that
+license — see the top-level `LICENSE` file.
 
 ## Provenance
 
@@ -11,44 +11,55 @@ that license — see the top-level `LICENSE` file.
 |---|---|
 | `moco/builder.py`, `moco/loader.py`, `moco/optimizer.py`, `moco/__init__.py` | Unmodified copy of the upstream `moco/` package. |
 | `vits.py` | Unmodified copy of the upstream `vits.py`. |
-| `datasets.py` | New — custom `PairsDataset` for spatial-contrastive sample selection (loads `(path1, path2, GEOID)` pairs from a pickle produced by `src/datasets/spatial_contrastive.py`). |
-| `moco_sv.py` | Modified — multi-GPU street-view variant. Renamed from `moco_gsv_multi.py`. Differs from upstream `main_moco.py` in: dataset loader (PairsDataset instead of ImageFolder), optional Neptune logging hooks, custom CLI for `--save-folder` and resume semantics. |
-| `moco_rs.py` | Modified — same as `moco_sv.py` but loads the high-resolution satellite imagery used in the paper (~0.6 m imagery obtained through the Google Static Maps API). Renamed from `moco_rs_multi.py`. |
+| `datasets.py` | Custom pair-dataset utility used by spatial-contrastive sample preparation. |
+| `moco_sv.py` | Modified multi-GPU street-view entry point with the study-specific dataset loaders, checkpoint handling, and paper-reproduction learning-rate semantics. |
+| `moco_rs.py` | Satellite counterpart using the channel normalization and image loaders used by the study. |
 
-## Files NOT included from upstream
+The cleaned release entry points intentionally contain no external
+experiment-tracking service integration or embedded service credentials.
+Training metrics are written locally through TensorBoard.
 
-The following upstream files were not relevant to this paper and were
-excluded to keep the release minimal:
+## Pretraining configuration
 
-- `main_lincls.py` — supervised linear probing (we use a custom token
-  regression head; see `src/regression/token_reg.py`).
-- `main_moco.py` — single-GPU variant, superseded by `moco_sv.py` /
-  `moco_rs.py`.
-- `transfer/` — Oxford Flowers / Oxford Pets transfer benchmarks.
-- `convert_to_deit.py` — DeiT conversion utility.
+The paper-reproduction launchers are `../scripts/pretrain_sv.sh` and
+`../scripts/pretrain_rs.sh`. They use ViT-B, AdamW, total batch size 1024,
+initial optimizer learning rate `1e-5`, weight decay `1e-6`, 100 street-view
+epochs and 50 satellite epochs. A 10-epoch warm-up is retained from the
+implementation; the manuscript does not separately report that value.
 
-## Files dropped from the legacy SDG repo
+Unlike the stock MoCo-v3 launcher, the cleaned entry points interpret `--lr` as
+the actual initial optimizer learning rate and do **not** multiply it by
+`batch_size / 256`. This keeps a launcher value of `1e-5` equal to the
+manuscript-reported optimizer learning rate.
 
-- `moco-v3/moco_rs.py` — single-GPU duplicate of `moco_rs_multi.py`,
-  superseded by the multi-GPU version which we kept as `moco_rs.py`.
-- `moco-v3/CONFIG.md` — informal training notes, superseded by this
-  NOTICE and by `scripts/README.md`.
+Two checkpoint modes are supported:
+
+- `--pretrained`: initialize model weights but start a fresh optimizer/epoch
+  counter. The shell launchers expose this as the optional `init_ckpt`, e.g.
+  when starting a spatial-contrastive run from a self-contrastive checkpoint.
+- `--resume`: restore model, optimizer, AMP scaler, and epoch for an interrupted
+  run. The shell launchers expose this separately as `resume_ckpt`.
 
 ## Reproducing the published checkpoints
 
-The pretrained checkpoints used for this paper's results are distributed
-via Zenodo (see `data/README.md`). Most downstream users do not need to
-rerun pretraining — they can download the checkpoints and proceed
-directly to feature extraction.
+The pretrained checkpoints used for the paper are distributed via Zenodo (see
+`data/README.md`). Most downstream users do not need to rerun pretraining: they
+can use those checkpoints and proceed directly to feature extraction.
 
-If you do want to rerun, see `../scripts/pretrain_sv.sh` and
-`../scripts/pretrain_rs.sh`. Compute budget per modality with the paper's
-training set: ~5 days on 8× A100.
+Full pretraining requires independent access to the third-party imagery and
+substantial GPU compute. The downstream main-figure reproduction route therefore
+starts from the deposited checkpoints/derived representations.
+
+## Files not included from upstream
+
+Upstream training/transfer utilities that are not used by this study were
+excluded to keep the release focused; the original MoCo-v3 repository remains
+the authoritative source for those utilities.
 
 ## Citation
 
-If you use this pretraining code, please cite both the original MoCo-v3
-paper and this work:
+If you use this pretraining code, please cite both the original MoCo-v3 paper
+and this work:
 
 ```bibtex
 @inproceedings{chen2021mocov3,
