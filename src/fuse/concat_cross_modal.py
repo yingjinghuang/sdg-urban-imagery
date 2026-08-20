@@ -11,8 +11,8 @@ Produces four Fuse-level feature files for each (Country, City):
     Fuse/Concat_spatial_self.pkl       [MAIN FRAMEWORK]
         spatial-SV ⊕ spatial-RS ⊕ self-SV ⊕ self-RS          3072-d
 
-    Fuse/Concat_ImageNet.pkl           [Fig 1a baseline]
-        ImageNet-SV ⊕ ImageNet-RS                            1536-d
+    Fuse/Concat_ImageNet.pkl           [manuscript Fig. 2a baseline]
+        ResNet50(ImageNet)-SV ⊕ ResNet50(ImageNet)-RS        4096-d
 
 Replaces the original ``concat_sv_rs.py`` + ``concat_self_spatial.py``,
 which inlined the city list and hardcoded variant choice via commented
@@ -69,11 +69,11 @@ def fuse_all(root: str, country: str, city: str, sv_epoch: int, rs_epoch: int) -
         expected_dim_per_block=768,
     )
 
-    # Concat_ImageNet
+    # Concat_ImageNet: two 2,048-d ResNet-50 blocks.
     hstack_on_geoid(
         [sv("ImageNet.pkl"), rs("ImageNet.pkl")],
         str(fuse_dir / "Concat_ImageNet.pkl"),
-        expected_dim_per_block=768,
+        expected_dim_per_block=2048,
     )
 
 
